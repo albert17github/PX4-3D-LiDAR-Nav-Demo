@@ -76,7 +76,10 @@ if grep -Fq 'http://packages.osrfoundation.org' "$PX4_SETUP_TEMP/ubuntu.sh"; the
   echo "Failed to replace the OSRF HTTP repository URL" >&2
   exit 1
 fi
-RUNS_IN_DOCKER=true "$PX4_SETUP_TEMP/ubuntu.sh" --no-nuttx
+(
+  cd "$PX4_SETUP_TEMP"
+  RUNS_IN_DOCKER=true ./ubuntu.sh --no-nuttx
+)
 cleanup_px4_setup_temp
 trap - EXIT
 apt-get -o Acquire::Retries=5 update
