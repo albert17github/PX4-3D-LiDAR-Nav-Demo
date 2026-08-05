@@ -25,6 +25,38 @@ if [[ -f "$run_dir/base-run.txt" ]]; then
   fi
 fi
 
+# Restore the shared baseline's next-boot parameter contract only when live
+# telemetry proves that changing estimator parameters is safe.  If shutdown is
+# requested in flight, leave the runtime values alone; the next project start
+# repairs them through its PX4 minimal-shell preflight before launching Gazebo.
+restore_ground_state="$run_dir/evidence/px4-lio-yaw-restore-ground-state.txt"
+restore_safe=0
+if px4_parameter_value EKF2_EV_CTRL >/dev/null 2>&1; then
+  {
+    printf '[mavros/state]\n'
+    native_ros timeout --signal=INT --kill-after=2s 8s \
+      ros2 topic echo --once /mavros/state
+    printf '[mavros/extended_state]\n'
+    native_ros timeout --signal=INT --kill-after=2s 8s \
+      ros2 topic echo --once /mavros/extended_state
+  } >"$restore_ground_state" 2>&1 || true
+  if grep -Fq 'armed: false' "$restore_ground_state" &&
+     grep -Fq 'landed_state: 1' "$restore_ground_state"; then
+    restore_safe=1
+  fi
+fi
+if ((restore_safe == 1)); then
+  if px4_apply_parameter_profile restore \
+      "$run_dir/evidence/px4-lio-yaw-restore-readback.txt" \
+      >"$run_dir/logs/px4-lio-yaw-restore.log" 2>&1; then
+    printf 'px4_lio_restore=PASS\n' >>"$run_dir/status"
+  else
+    printf 'px4_lio_restore=FAIL\n' >>"$run_dir/status"
+  fi
+else
+  printf 'px4_lio_restore=SKIPPED_NOT_PROVEN_LANDED\n' >>"$run_dir/status"
+fi
+
 stop_group "$run_dir" video
 stop_group "$run_dir" rviz
 stop_group "$run_dir" xephyr

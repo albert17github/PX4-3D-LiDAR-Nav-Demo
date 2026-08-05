@@ -1,0 +1,18 @@
+# parameter boot runtime restore
+#
+# boot:    values required before the shared baseline starts.  Magnetometer is
+#          initialization-only so PX4 can establish heading before DLIO starts.
+# runtime: one continuous DLIO odometry authority for horizontal position,
+#          body-frame velocity, and yaw (EKF2_EV_CTRL bits 0, 2, and 3).
+# restore: preserve the shared baseline's original next-boot contract.
+EKF2_EV_CTRL 1 13 1
+EKF2_MAG_TYPE 6 6 0
+EKF2_GPS_CTRL 0 0 0
+EKF2_BARO_CTRL 1 1 1
+EKF2_HGT_REF 0 0 0
+EKF2_EV_NOISE_MD 1 1 1
+EKF2_EVP_NOISE 0.50 0.50 0.50
+EKF2_EVV_NOISE 0.10 0.10 0.10
+EKF2_EVA_NOISE 0.10 0.10 0.10
+EKF2_EV_QMIN 0 0 0
+EKF2_LOG_VERBOSE 1 1 1

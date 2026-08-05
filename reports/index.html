@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="PX4 三维 LiDAR RViz 持久多次选点飞行：在线建图、三维 A*、稳定机头、自动降落和完整证据。">
-  <title>PX4 · RViz 交互选点飞行</title>
+  <meta name="description" content="PX4 三维 LiDAR RViz 持久多次选点飞行：DLIO 位置速度航向统一融合、在线建图、三维 A*、自动降落和 ULog 证据。">
+  <title>PX4 · LIO 航向权限与连续飞行</title>
   <style>
     :root {
       --paper: #eef3f5;
@@ -292,34 +292,35 @@
 
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero__copy">
-        <p class="eyebrow">2026-08-05 · Fast startup + RViz interactive goal</p>
-        <h1 id="hero-title">在 RViz 点一点，<br><em>飞机自己飞过去。</em></h1>
-        <p class="lede">无需 QGroundControl。运行交互入口后，操作者可在 RViz 反复使用 <span class="mono">2D Goal Pose</span>：位置决定目标，箭头决定固定机头方向。系统基于在线 OctoMap 调用 MRS 三维 A*；完整安全路径才交给 PX4。每次抵达后自动降落并继续等待下一目标，不重启技术栈。</p>
+        <p class="eyebrow">2026-08-05 · DLIO position + velocity + yaw authority</p>
+        <h1 id="hero-title">飞得更远，<br><em>坐标不再突然转动。</em></h1>
+        <p class="lede">PX4 不再只融合 DLIO 的水平位置：飞行阶段由同一条 external odometry 同时约束位置、body velocity 与 yaw，磁航向只参与上电初始化。操作者仍可在 RViz 反复使用 <span class="mono">2D Goal Pose</span>；四次连续飞行、四份闭合 ULog 和 Gazebo 真值共同验证了长距离与多次起降后的稳定性。</p>
         <div class="verdicts" aria-label="实验结论">
-          <div class="verdict verdict--pass">冷启动<strong>4:47</strong></div>
-          <div class="verdict verdict--pass">目标飞行<strong>PASS</strong></div>
-          <div class="verdict verdict--pass">自动降落<strong>PASS</strong></div>
-          <div class="verdict verdict--pass">多次选点<strong>PASS</strong></div>
+          <div class="verdict verdict--pass">连续任务<strong>4 / 4 PASS</strong></div>
+          <div class="verdict verdict--pass">最远半径<strong>10.30 m</strong></div>
+          <div class="verdict verdict--pass">飞行内重置<strong>0</strong></div>
+          <div class="verdict verdict--pass">真值最大残差<strong>0.128 m</strong></div>
         </div>
         <nav class="jump-nav" aria-label="页面目录">
           <a href="#interactive">交互选点</a>
           <a href="#startup">启动提速</a>
+          <a href="#lio-yaw">LIO 航向核验</a>
           <a href="#contract">系统与合同</a>
           <a href="#timeline">逐步过程</a>
           <a href="#results">结果对照</a>
           <a href="#artifacts">证据下载</a>
         </nav>
       </div>
-      <a class="hero__proof" href="../runs/20260805-113113-Yd1sN7/evidence/desktop-readiness.png" target="_blank" rel="noopener" aria-label="打开 readiness 快速冷启动后的 Gazebo 与 RViz 桌面截图">
-        <img src="../runs/20260805-113113-Yd1sN7/evidence/desktop-readiness.png" alt="Ubuntu 桌面中同时可见 Gazebo、RViz、三维 LiDAR 点云与在线 OctoMap" fetchpriority="high">
-        <span class="proof-label">FAST READINESS · LIVE GUI</span>
-        <span class="proof-caption"><strong>287 秒打开完整实时栈，Gazebo、LiDAR、PX4 pose 与 OctoMap 同屏在线。</strong><span>RUN 20260805-113113-Yd1sN7 · 本轮等待选点，尚未触发飞行</span></span>
+      <a class="hero__proof" href="../runs/20260805-151557-Otlbug/evidence/final-desktop.png" target="_blank" rel="noopener" aria-label="打开四次连续飞行后的 Gazebo 与 RViz 最终桌面截图">
+        <img src="../runs/20260805-151557-Otlbug/evidence/final-desktop.png" alt="四次连续飞行并落地后同时可见 Gazebo、RViz、三维 LiDAR 点云、路径与在线 OctoMap" fetchpriority="high">
+        <span class="proof-label">4 FLIGHTS · CLOSED ULOGS</span>
+        <span class="proof-caption"><strong>同一 PX4 / EKF2 / DLIO 实例连续四次到达、自动降落，最远目标半径 10.30 m。</strong><span>RUN 20260805-151557-Otlbug · CLEAN STOP · PARAMETER RESTORE PASS</span></span>
       </a>
     </section>
 
     <div class="live-strip" aria-live="polite">
       <span class="live-strip__label">Final status</span>
-      <span class="live-strip__phase" id="phase">无 QGC 持久多次选点、实际落地点续飞、稳定机头、自动降落、哈希与清理全部 PASS。</span>
+      <span class="live-strip__phase" id="phase">DLIO 位置/速度/yaw 统一融合；连续四次飞行、ULog、Gazebo 真值、自动降落与清理全部 PASS。</span>
       <span class="live-strip__run" id="active-run">run：当前无活动运行</span>
     </div>
   </header>
@@ -338,17 +339,17 @@
       </div>
       <div class="video-proof">
         <div class="video-shell">
-          <video controls preload="metadata" poster="../runs/20260804-193505-kEjVgs/evidence/rviz-final.png">
-            <source src="../runs/20260804-193505-kEjVgs/evidence/rviz-ab-demo.mp4" type="video/mp4">
+          <video controls preload="metadata" poster="../runs/20260805-151557-Otlbug/evidence/rviz-final.png">
+            <source src="../runs/20260805-151557-Otlbug/evidence/rviz-ab-demo.mp4" type="video/mp4">
             浏览器不支持内嵌视频，可在证据区直接下载 MP4。
           </video>
-          <p>NO-QGC INTERACTIVE GOAL · 82.375 s · H.264 · ONLINE OCTOMAP + REAL PX4 EXECUTION</p>
+          <p>LIO YAW AUTHORITY · 1345.250 s · H.264 · FOUR MISSIONS + ONLINE OCTOMAP</p>
         </div>
         <aside class="result-note">
           <svg><use href="#i-route"/></svg>
-          <h3>持久任务与固定机头实测</h3>
-          <p>同一会话连续完成 <span class="mono">0→5→0</span> 两轮飞行；另一真实 run 将 RViz 箭头设为 +90°，5 点折线路径中的 yaw setpoint 全程不变，实际最大误差 2.04°。</p>
-          <span class="big">2 flights</span><span class="small">LANDED → WAIT AGAIN · CLEAN STOP</span>
+          <h3>不靠“看起来没乱”判定</h3>
+          <p>四次任务 yaw 覆盖 +135°、-135°、0°、180°。每份 ULog 都证明 EV position/velocity/yaw 持续融合、innovation 未拒绝、飞行中 heading 与 quaternion reset 增量为零。</p>
+          <span class="big">4 flights</span><span class="small">ONE ESTIMATOR · 0 IN-FLIGHT RESETS</span>
         </aside>
       </div>
     </section>
@@ -363,20 +364,21 @@
           <table>
             <thead><tr><th>阶段</th><th>本轮耗时</th><th>仍然验证的合同</th></tr></thead>
             <tbody>
-              <tr><td>Base stack</td><td class="mono">263 s</td><td>Gazebo/LiDAR、MAVROS、landed/disarmed、DLIO、PX4 fusion、TF、OctoMap</td></tr>
-              <tr><td>No-GCS policy</td><td class="mono">1 s</td><td><code>NAV_DLL_ACT=0</code> readback，且机体仍 landed/disarmed</td></tr>
-              <tr><td>MRS planner</td><td class="mono">19 s</td><td><code>/demo/minimal_planner/get_path</code> 类型精确匹配</td></tr>
-              <tr><td>RViz + recording</td><td class="mono">4 s</td><td>可见窗口、实时 LiDAR/OctoMap、截图与 H.264 录制</td></tr>
-              <tr><td>Total</td><td class="cell-pass mono">287 s</td><td>进入 <code>waiting_for_interactive_goal</code>，未自动解锁</td></tr>
+              <tr><td>Reboot-safe profile</td><td class="mono">8 s</td><td>异常退出后先恢复 baseline boot 值，并设置 magnetometer init-only</td></tr>
+              <tr><td>Base stack</td><td class="mono">262 s</td><td>Gazebo/LiDAR、MAVROS、landed/disarmed、DLIO、旧兼容门、TF、OctoMap</td></tr>
+              <tr><td>Estimator + no-GCS</td><td class="mono">8 s</td><td><code>EV_CTRL=13</code> 与三项 fusion flag、无飞行磁融合、<code>NAV_DLL_ACT=0</code></td></tr>
+              <tr><td>MRS planner</td><td class="mono">17 s</td><td><code>/demo/minimal_planner/get_path</code> 类型精确匹配</td></tr>
+              <tr><td>RViz + recording</td><td class="mono">8 s</td><td>可见窗口、实时 LiDAR/OctoMap、截图与 H.264 录制</td></tr>
+              <tr><td>Total</td><td class="cell-pass mono">303 s</td><td>进入安全目标等待；新增估计器生命周期约 16 s</td></tr>
               <tr><td>Historical total</td><td class="mono">655..784 s</td><td>四次 2026-08-04 成功冷启动的同口径范围</td></tr>
             </tbody>
           </table>
         </div>
         <aside class="result-note">
           <svg><use href="#i-shield"/></svg>
-          <h3>快了约 56%–63%</h3>
+          <h3>快了约 54%–61%</h3>
           <p>节省的是重复、串行的通用 health CLI 探针，不是飞行 watchdog、路径完整性、净距、OFFBOARD 或自动降落合同。</p>
-          <span class="big">4:47</span><span class="small">COLD START → RVIZ GOAL WAIT</span>
+          <span class="big">5:03</span><span class="small">COLD START → RVIZ GOAL WAIT</span>
         </aside>
       </div>
       <div class="media-pair" style="margin-top:18px">
@@ -390,6 +392,41 @@
       </div>
     </section>
 
+    <section class="section" id="lio-yaw" aria-labelledby="lio-yaw-title">
+      <div class="section-head">
+        <div><span class="section-head__index">00C / ESTIMATOR AUTHORITY</span><h2 id="lio-yaw-title">不是换规划算法，而是统一飞行坐标的航向来源</h2></div>
+        <p>旧配置只融合 DLIO 水平位置；PX4 一旦独立重置 yaw，同一份外部位置就会被换一个角度解释，距离越远，表观位置跳变越大。本轮让 external odometry 同时约束 position、body velocity 和 yaw，飞行中不再混用磁航向。</p>
+      </div>
+      <div class="result-layout">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>任务</th><th>起点 → 目标</th><th>目标 yaw</th><th>路径长度</th><th>终点误差</th></tr></thead>
+            <tbody>
+              <tr><td class="cell-pass">001 · PASS</td><td class="mono">[7.01,-0.04] → [7,7]</td><td class="mono">+135°</td><td class="mono">7.730 m</td><td class="mono">0.051 m</td></tr>
+              <tr><td class="cell-pass">002 · PASS</td><td class="mono">[7.02,6.96] → [7,3]</td><td class="mono">-135°</td><td class="mono">4.045 m</td><td class="mono">0.045 m</td></tr>
+              <tr><td class="cell-pass">003 · PASS</td><td class="mono">[7.01,3.03] → [9,3]</td><td class="mono">0°</td><td class="mono">2.183 m</td><td class="mono">0.028 m</td></tr>
+              <tr><td class="cell-pass">004 · PASS</td><td class="mono">[9.01,3.00] → [9,5]</td><td class="mono">180°</td><td class="mono">2.228 m</td><td class="mono">0.045 m</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <aside class="result-note">
+          <svg><use href="#i-shield"/></svg>
+          <h3>四份闭合 ULog 同时通过</h3>
+          <p>武装区间内 <code>cs_ev_pos/vel/yaw</code> 始终为 true，mag yaw fusion、EV yaw fault 和 position/velocity/yaw rejection 始终为 false；heading 与 quaternion reset counter 均无增量。</p>
+          <span class="big">0 resets</span><span class="small">4 ULOGS · 0 DROPOUTS · 0 FAILSAFES</span>
+        </aside>
+      </div>
+      <div class="media-pair" style="margin-top:18px">
+        <figure><a href="../runs/20260805-151557-Otlbug/evidence/final-desktop.png" target="_blank" rel="noopener"><img src="../runs/20260805-151557-Otlbug/evidence/final-desktop.png" alt="四次连续飞行并自动降落后的 Gazebo 与 RViz 桌面" loading="lazy"></a><figcaption><strong>Final desktop</strong> · 同一估计器连续四次飞行后安全落地。</figcaption></figure>
+        <figure><a href="../runs/20260805-151557-Otlbug/evidence/rviz-final.png" target="_blank" rel="noopener"><img src="../runs/20260805-151557-Otlbug/evidence/rviz-final.png" alt="四次连续飞行后的 RViz 路径、三维点云与 OctoMap" loading="lazy"></a><figcaption><strong>Final RViz</strong> · 在线点云、OctoMap、规划路径和机体状态。</figcaption></figure>
+      </div>
+      <div class="boundary">
+        <svg><use href="#i-checklist"/></svg>
+        <div><h3>独立真值交叉核验</h3><p>用一个固定 SE(2) 变换对齐全部四次飞行的 DLIO 局部坐标与 Gazebo 真值，没有逐次重新对齐。位置残差 mean / p95 / max 为 0.053 / 0.110 / 0.128 m，yaw 残差为 0.60° / 1.78° / 3.04°。</p></div>
+        <a class="file-link" href="../runs/20260805-151557-Otlbug/evidence/lio-yaw-ulog-summary.json" target="_blank" rel="noopener">打开 ULog + truth 汇总 ↗</a>
+      </div>
+    </section>
+
     <section class="section" id="contract" aria-labelledby="contract-title">
       <div class="section-head">
         <div><span class="section-head__index">01 / DATA LINE</span><h2 id="contract-title">先固定系统，再谈结果</h2></div>
@@ -399,7 +436,7 @@
         <article class="flow__item"><svg class="flow__icon"><use href="#i-drone"/></svg><code>01 / PX4</code><h3>SITL 飞控</h3><p>EKF2、OFFBOARD、AUTO.LAND</p></article>
         <article class="flow__item"><svg class="flow__icon"><use href="#i-lidar"/></svg><code>02 / GAZEBO</code><h3>传感器与物理</h3><p>3D LiDAR、IMU、圆柱障碍</p></article>
         <article class="flow__item"><svg class="flow__icon"><use href="#i-route"/></svg><code>03 / DLIO</code><h3>LiDAR 里程计</h3><p>点云 + IMU，隔离 TF</p></article>
-        <article class="flow__item"><svg class="flow__icon"><use href="#i-stack"/></svg><code>04 / MAVROS</code><h3>飞控连接</h3><p>水平位姿回灌与航点执行</p></article>
+        <article class="flow__item"><svg class="flow__icon"><use href="#i-stack"/></svg><code>04 / MAVROS</code><h3>飞控连接</h3><p>位置、速度、yaw 回灌与航点执行</p></article>
         <article class="flow__item"><svg class="flow__icon"><use href="#i-cube"/></svg><code>05 / OCTOMAP</code><h3>在线占据图</h3><p>map frame，0.4 m 分辨率</p></article>
         <article class="flow__item"><svg class="flow__icon"><use href="#i-map"/></svg><code>06 / MRS A*</code><h3>三维路径</h3><p>complete 才允许进入执行</p></article>
         <article class="flow__item"><svg class="flow__icon"><use href="#i-video"/></svg><code>07 / RVIZ</code><h3>实时记录</h3><p>点云、地图、路径和机体</p></article>
@@ -414,8 +451,8 @@
 
     <section class="section" id="timeline" aria-labelledby="timeline-title">
       <div class="section-head">
-        <div><span class="section-head__index">02 / CHRONOLOGY</span><h2 id="timeline-title">完整过程，按发生顺序</h2></div>
-        <p>14:24 首次启动至 15:06 最终审计。每张图都来自对应 run 的 evidence 目录。</p>
+        <div><span class="section-head__index">02 / HISTORICAL CHRONOLOGY</span><h2 id="timeline-title">历史 A→B 验收过程，按发生顺序</h2></div>
+        <p>以下为 2026-08-03 14:24 首次启动至 15:06 最终审计；保留作为原始 Gate 5 验收基线。每张图都来自对应 run 的 evidence 目录。</p>
       </div>
 
       <div class="timeline">
@@ -554,8 +591,8 @@
 
     <section class="section" id="results" aria-labelledby="results-title">
       <div class="section-head">
-        <div><span class="section-head__index">03 / COMPARISON</span><h2 id="results-title">两次尝试放在一起看</h2></div>
-        <p>第一次回答“系统会不会拒绝坏路径”，第二次回答“好路径能不能真正飞完”。</p>
+        <div><span class="section-head__index">03 / HISTORICAL COMPARISON</span><h2 id="results-title">历史两次尝试放在一起看</h2></div>
+        <p>2026-08-03 的第一次回答“系统会不会拒绝坏路径”，第二次回答“好路径能不能真正飞完”。</p>
       </div>
       <div class="result-layout">
         <div class="table-wrap">
@@ -612,6 +649,14 @@
         <p>原始 JSON、地图、视频和哈希均可直接打开；网页只是它们的索引。</p>
       </div>
       <div class="artifacts">
+        <a class="artifact" href="../runs/20260805-151557-Otlbug/evidence/final-desktop.png" target="_blank" rel="noopener"><svg><use href="#i-stack"/></svg><code>LIO YAW / DESKTOP</code><strong>四次飞行最终桌面</strong><span>同一 PX4、EKF2 与 DLIO 实例，Gazebo/RViz 可见且已安全落地。</span></a>
+        <a class="artifact" href="../runs/20260805-151557-Otlbug/evidence/lio-yaw-ulog-summary.json" target="_blank" rel="noopener"><svg><use href="#i-checklist"/></svg><code>LIO YAW / ULOG</code><strong>估计器与真值汇总</strong><span>4 个 ULog、融合 flags、reset counters、failsafe 和统一 SE(2) 真值残差。</span></a>
+        <a class="artifact" href="../runs/20260805-151557-Otlbug/evidence/mission-result-001.json" target="_blank" rel="noopener"><svg><use href="#i-route"/></svg><code>LIO YAW / 001</code><strong>远端横向任务</strong><span>[7.01,-0.04] → [7,7]，+135°，终点误差 0.051 m。</span></a>
+        <a class="artifact" href="../runs/20260805-151557-Otlbug/evidence/mission-result-004.json" target="_blank" rel="noopener"><svg><use href="#i-route"/></svg><code>LIO YAW / 004</code><strong>第四次连续任务</strong><span>[9.01,3.00] → [9,5]，180°，终点误差 0.045 m。</span></a>
+        <a class="artifact" href="../runs/20260805-151557-Otlbug/evidence/rviz-ab-demo.mp4" target="_blank" rel="noopener"><svg><use href="#i-video"/></svg><code>LIO YAW / MP4</code><strong>完整会话录屏</strong><span>1345.250 秒 H.264，包含连续任务、在线地图与落地。</span></a>
+        <a class="artifact" href="../runs/20260805-151557-Otlbug/evidence/px4-lio-yaw-runtime-readback.txt" target="_blank" rel="noopener"><svg><use href="#i-shield"/></svg><code>LIO YAW / PARAM</code><strong>飞行参数 readback</strong><span>EKF2_EV_CTRL=13、EKF2_MAG_TYPE=6 及噪声、height reference 实际值。</span></a>
+        <a class="artifact" href="../runs/20260805-151557-Otlbug/evidence/px4-lio-yaw-restore-readback.txt" target="_blank" rel="noopener"><svg><use href="#i-shield"/></svg><code>LIO YAW / RESTORE</code><strong>停止后参数恢复</strong><span>仅在 landed/disarmed 证明成立后恢复 baseline boot 值并保存。</span></a>
+        <a class="artifact" href="../runs/20260805-151557-Otlbug/evidence/sha256.txt" target="_blank" rel="noopener"><svg><use href="#i-hash"/></svg><code>LIO YAW / SHA-256</code><strong>本轮证据完整性</strong><span>截图、视频、地图、四个任务 JSON、readback 与汇总逐项校验。</span></a>
         <a class="artifact" href="../runs/20260805-113113-Yd1sN7/evidence/desktop-readiness.png" target="_blank" rel="noopener"><svg><use href="#i-stack"/></svg><code>FAST START / DESKTOP</code><strong>Gazebo + RViz readiness</strong><span>287 秒冷启动后的实时桌面证据。</span></a>
         <a class="artifact" href="../runs/20260805-113113-Yd1sN7/evidence/rviz-readiness.png" target="_blank" rel="noopener"><svg><use href="#i-lidar"/></svg><code>FAST START / RVIZ</code><strong>在线点云与 OctoMap</strong><span>0.4 m map，1622 occupied centers，状态全部 OK。</span></a>
         <a class="artifact" href="../runs/20260805-113113-Yd1sN7/evidence/startup-live-verification.txt" target="_blank" rel="noopener"><svg><use href="#i-checklist"/></svg><code>FAST START / LIVE CHECK</code><strong>在线状态核验</strong><span>19 gates、connected、landed、map odom、OctoMap 与 planner 类型。</span></a>
@@ -636,16 +681,16 @@
       </div>
 
       <div class="boundary">
-        <svg><use href="#i-warning"/></svg>
-        <div><h3>当前资源与运行状态</h3><p>优化冷启动会话正在等待 RViz 目标，没有 QGroundControl，也没有自动解锁；历史持久双任务、稳定朝向、MAVROS 早期 SIGSEGV 与失败证据仍原样保留。完成选点后在原终端按一次 Ctrl+C，即走统一保存与停止流程。</p></div>
-        <code>active · waiting for goal · 51G free</code>
+        <svg><use href="#i-checklist"/></svg>
+        <div><h3>当前资源与运行状态</h3><p>四次连续飞行均已自动降落，统一停止流程确认 landed/disarmed 后恢复 PX4 baseline boot 参数；项目与基线受管进程组、活动标记均已清理。历史持久双任务、MAVROS SIGSEGV 和 fail-closed 证据仍原样保留。</p></div>
+        <code>stopped · clean · restore PASS</code>
       </div>
     </section>
   </main>
 
   <footer class="wrap">
-    <span>PROJECT · /home/albert/PX4-3D-LiDAR-Nav-Demo<br>REPORT · 2026-08-05 fast readiness + persistent RViz multi-goal</span>
-    <span><a href="../PROJECT_MEMORY.md" target="_blank" rel="noopener">Project Memory</a> · <a href="../IMPLEMENTATION_PLAN.md" target="_blank" rel="noopener">Implementation Plan</a> · <span id="updated">状态时间 2026-08-05 11:39</span></span>
+    <span>PROJECT · /home/albert/PX4-3D-LiDAR-Nav-Demo<br>REPORT · 2026-08-05 DLIO position + velocity + yaw authority</span>
+    <span><a href="../PROJECT_MEMORY.md" target="_blank" rel="noopener">Project Memory</a> · <a href="../IMPLEMENTATION_PLAN.md" target="_blank" rel="noopener">Implementation Plan</a> · <span id="updated">状态时间 2026-08-05 15:43</span></span>
   </footer>
 
   <script>

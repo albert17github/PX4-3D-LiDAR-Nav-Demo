@@ -6,7 +6,7 @@
 PX4 SITL + Gazebo 3D LiDAR
               ↓ point cloud + IMU
              DLIO
-              ├── odometry → MAVROS → PX4 EKF2
+              ├── position + body velocity + yaw → MAVROS → PX4 EKF2
               └── pose + cloud → OctoMap
                                    ↓
                          MRS 3D A* planner
@@ -49,7 +49,7 @@ cd /home/albert/PX4-3D-LiDAR-Nav-Demo
 
 脚本会重新冷启动完整栈，通过健康门后才允许 `OFFBOARD` 与 arm；规划路径不完整或净距不足时会在 A 悬停有界重试，全部失败则自动安全降落。成功运行会在新的 `runs/<timestamp>/evidence/` 中保存 JSON、截图、H.264 视频、`.bt` 地图和 SHA-256 清单。
 
-默认冷启动使用面向本演示的 `readiness` 模式：仍逐项验证 Gazebo/LiDAR、MAVROS、landed/disarmed、DLIO、PX4 EKF2 水平位置融合、TF 与非空 OctoMap，但不在每次演示前重复底层归档项目完整的 66 项 startup audit。需要恢复完整审计路径时运行：
+默认冷启动使用面向本演示的 `readiness` 模式：仍逐项验证 Gazebo/LiDAR、MAVROS、landed/disarmed、DLIO、PX4 EKF2 external position/velocity/yaw 融合、TF 与非空 OctoMap，但不在每次演示前重复底层归档项目完整的 66 项 startup audit。需要恢复完整审计路径时运行：
 
 ```bash
 PX4_DEMO_STARTUP_HEALTH_MODE=full ./demo.sh --interactive
@@ -63,7 +63,7 @@ RViz 交互选点模式：
 ./demo.sh --interactive
 ```
 
-等待终端显示 `waiting_for_interactive_goal`，然后在 RViz 顶部选择 `2D Goal Pose`，在地图上按住鼠标并拖出箭头。点击位置提供目标 X/Y，飞行高度固定为 `2.2 m`，箭头方向作为整次任务的固定机头朝向。机体只在起飞时按最短角度、最多 `45°/s` 平滑转向，不再跟随每个规划折点反复旋转。
+等待终端显示 `waiting_for_interactive_goal`，然后在 RViz 顶部选择 `2D Goal Pose`，在地图上按住鼠标并拖出箭头。点击位置提供目标 X/Y，飞行高度固定为 `2.2 m`，箭头方向作为整次任务的固定机头朝向。机体先保持当前航向垂直起飞，到达高度后再按最短角度、最多 `45°/s` 原地转向，不再跟随每个规划折点反复旋转。
 
 路径通过在线 OctoMap 规划和安全校验后才会进入 OFFBOARD。到达后自动降落，但程序、Gazebo、RViz、DLIO 和地图都不会退出；终端重新显示 `waiting_for_interactive_goal` 后可以继续选下一个点。下一次规划从飞机的实际落地点开始。等待会持续到用户停止，配置中的 30 分钟只作为周期性等待提示，不会关闭窗口。完成全部尝试后在原终端按一次 `Ctrl+C`。
 
@@ -77,6 +77,8 @@ RViz 交互选点模式：
 ```
 
 ## 已验证结果
+
+2026-08-05 LIO yaw authority run `20260805-151557-Otlbug` PASS：PX4 在飞行阶段实测 `EKF2_EV_CTRL=13`，DLIO 同时约束 horizontal position、body velocity 和 yaw；磁航向仅用于启动初始化，飞行中 `cs_mag_hdg/cs_mag_3d=False`。同一个 PX4/EKF2/DLIO 实例连续完成 4 次飞行和自动降落，最远目标半径 `10.296 m`，目标误差均为 `0.028..0.051 m`。4 份 ULog 中 EV 三项 fusion 全程有效、三类 innovation 零拒绝、飞行中 heading/quaternion reset 增量为 0、dropout 为 0；以一套固定 SE(2) 对齐 Gazebo 真值后的最大位置/yaw 残差为 `0.128 m / 3.04°`。完整摘要见 `runs/20260805-151557-Otlbug/evidence/lio-yaw-ulog-summary.json`。
 
 2026-08-05 冷启动优化 run `20260805-113113-Yd1sN7` PASS：虚拟机异常重启后的 stale marker 已由现有停止脚本封存；新的 base readiness 用时 `263 s`，完整入口到 RViz `waiting_for_interactive_goal` 用时 `287 s`，此前四次成功启动为 `655..784 s`，约快 `56%..63%`。Gazebo/RViz 同屏截图、在线 `0.4 m` OctoMap（`1622` occupied centers）、MAVROS connected、`map` odom 和 MRS planner service 均已现场核验；本轮只启动并等待选点，没有自动触发飞行。
 
@@ -100,6 +102,12 @@ RViz 交互选点模式：
 同日又按报告步骤完整复现：`20260803-142437-0S5Hkc` 连续拒绝 5 条 incomplete path 后安全降落；新的独立 run `20260803-144745-8J6JGv` 获得 7 点完整路径，中心距离 `2.546 m`，实际到 B 误差 `0.2575 m`，随后 landed/disarmed。第二轮任务与证据哈希 PASS，但 Gazebo GUI teardown 记录 Segmentation fault，所以报告单独保留 shutdown WARN，不能称为 clean shutdown。
 
 浏览器报告：<http://127.0.0.1:8770/reports/index.html>
+
+## 版本切换
+
+- 初始基线：commit `1f535b2`，tag `v0.1.0-initial`。
+- LIO yaw 修复：tag `v0.2.0-lio-yaw`，后续修改从此版本继续叠加。
+- 私有仓库：<https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo>。
 
 详细当前状态和一键复核命令见 [PROJECT_MEMORY.md](PROJECT_MEMORY.md)，静态报告源文件见 [reports/index.html](reports/index.html)。
 

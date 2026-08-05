@@ -40,6 +40,11 @@ STATE_TOPIC = "/mavros/state"
 EXTENDED_STATE_TOPIC = "/mavros/extended_state"
 ODOM_TOPIC = "/mavros/local_position/odom"
 SETPOINT_TOPIC = "/mavros/setpoint_position/local"
+# MAVROS publishes State/ExtendedState at roughly 0.55-1 Hz under the full
+# mapping load.  Allow one missed or delayed heartbeat without weakening the
+# independent 0.5 s odometry watchdog that guards flight-control feedback.
+SLOW_TELEMETRY_TIMEOUT_S = 5.0
+ODOMETRY_TIMEOUT_S = 0.5
 
 
 class MissionError(RuntimeError):
@@ -488,10 +493,12 @@ class ABMission(Node):
                 and self.extended
                 and self.position
                 and self.state.connected
-                and time.monotonic() - self.last_state_s < 1.5
-                and time.monotonic() - self.last_extended_s < 1.5
-                and time.monotonic() - self.last_odom_s < 0.5
-                and time.monotonic() - self.last_odom_advance_s < 0.5
+                and time.monotonic() - self.last_state_s < SLOW_TELEMETRY_TIMEOUT_S
+                and time.monotonic() - self.last_extended_s
+                < SLOW_TELEMETRY_TIMEOUT_S
+                and time.monotonic() - self.last_odom_s < ODOMETRY_TIMEOUT_S
+                and time.monotonic() - self.last_odom_advance_s
+                < ODOMETRY_TIMEOUT_S
             ),
             25.0,
             "fresh MAVROS state and PX4 odometry",
@@ -512,9 +519,9 @@ class ABMission(Node):
             and self.state.connected
             and self.state.armed
             and self.state.mode == "OFFBOARD"
-            and state_age < 1.5
-            and odom_age < 0.5
-            and odom_advance_age < 0.5
+            and state_age < SLOW_TELEMETRY_TIMEOUT_S
+            and odom_age < ODOMETRY_TIMEOUT_S
+            and odom_advance_age < ODOMETRY_TIMEOUT_S
         )
         if not healthy:
             detail = {
@@ -718,13 +725,22 @@ class ABMission(Node):
         )
         self.event("plan_visualized", points=len(points))
 
-    def move_to(self, waypoint: XYZ, label: str) -> None:
+    def move_to(
+        self,
+        waypoint: XYZ,
+        label: str,
+        *,
+        target_yaw: float | None = None,
+    ) -> None:
         if self.target is None:
             raise MissionError("no active setpoint target")
         start = self.target
         distance = start.distance(waypoint)
         start_yaw = self.target_yaw
-        yaw_delta = normalize_angle(self.mission_yaw - start_yaw)
+        desired_yaw = normalize_angle(
+            self.mission_yaw if target_yaw is None else target_yaw
+        )
+        yaw_delta = normalize_angle(desired_yaw - start_yaw)
         duration = max(
             0.5,
             distance / self.config.cruise_speed_mps,
@@ -744,11 +760,18 @@ class ABMission(Node):
             lambda: bool(
                 self.position
                 and self.position.distance(waypoint) <= self.config.waypoint_tolerance_m
+                and self.vehicle_yaw is not None
+                and abs(normalize_angle(desired_yaw - self.vehicle_yaw))
+                <= math.radians(10.0)
             ),
             max(5.0, distance / self.config.cruise_speed_mps + 3.0),
             label,
         )
-        self.event(label, waypoint=waypoint.as_list())
+        self.event(
+            label,
+            waypoint=waypoint.as_list(),
+            target_yaw_rad=desired_yaw,
+        )
 
     def land(self) -> None:
         if not self.state or not self.state.armed:
@@ -845,19 +868,22 @@ class ABMission(Node):
         self.event("mission_heading_selected", yaw_rad=self.mission_yaw)
         mission_started = time.monotonic()
 
-        # Pre-stream the landed pose, then ramp vertically to the mission start.
-        # Heading changes once, by the shortest angle and at no more than
-        # 45 deg/s; path corners no longer rotate the airframe repeatedly.
+        # Pre-stream the landed pose, climb vertically without changing yaw,
+        # then rotate once at a stable altitude.  This keeps takeoff thrust and
+        # the estimator's handover to DLIO yaw out of the same transient.
         self.target = self.position
         if self.vehicle_yaw is not None:
             self.target_yaw = self.vehicle_yaw
+        takeoff_yaw = self.target_yaw
         self.run_for(2.0)
         self.set_mode("OFFBOARD")
         self.arm()
         self.move_to(
             self.active_start,
             "takeoff_at_current_start" if self.interactive else "takeoff_at_A",
+            target_yaw=takeoff_yaw,
         )
+        self.move_to(self.active_start, "mission_heading_at_takeoff_altitude")
         self.run_for(self.config.map_warmup_s, check_flight=True)
         self.event("map_warmup_complete", seconds=self.config.map_warmup_s)
 

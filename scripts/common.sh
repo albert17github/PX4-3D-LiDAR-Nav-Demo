@@ -21,6 +21,7 @@ MAVROS_OVERLAY_GUEST_LIB_DIR="${PX4_DEMO_MAVROS_OVERLAY_GUEST_LIB_DIR:-/project/
 # shellcheck disable=SC2034  # Public value consumed by scripts that source this file.
 RVIZ_DISPLAY="${PX4_DEMO_RVIZ_DISPLAY:-:98}"
 CURRENT_RUN_FILE="$DEMO_ROOT/.runtime/current-run"
+PX4_PARAM_PROFILE="$DEMO_ROOT/config/px4-lio-yaw.params"
 
 now_iso() {
   date --iso-8601=seconds
@@ -40,6 +41,89 @@ native_ros() {
     "$@"
 }
 
+px4_client() {
+  local module="${1:-}"
+  shift || true
+  [[ "$module" =~ ^[a-z0-9_]+$ ]] || {
+    echo "Invalid PX4 client module: $module" >&2
+    return 64
+  }
+  # shellcheck disable=SC2016 # Arguments expand inside the intentionally nested guest bash.
+  "$STACK_ROOT/scripts/proot-run.sh" bash -lc '
+    module="$1"
+    shift
+    cd /project/vendor/PX4-Autopilot
+    exec "./build/px4_sitl_default/bin/px4-${module}" "$@"
+  ' bash "$module" "$@"
+}
+
+px4_parameter_value() {
+  local name="${1:-}"
+  [[ "$name" =~ ^[A-Z][A-Z0-9_]{0,16}$ ]] || {
+    echo "Invalid PX4 parameter name: $name" >&2
+    return 64
+  }
+  px4_client param show -q "$name"
+}
+
+px4_numeric_equal() {
+  python3 - "$1" "$2" <<'PY'
+import math
+import sys
+
+try:
+    actual = float(sys.argv[1])
+    expected = float(sys.argv[2])
+except ValueError:
+    raise SystemExit(1)
+raise SystemExit(0 if math.isclose(actual, expected, rel_tol=0.0, abs_tol=1e-5) else 1)
+PY
+}
+
+px4_apply_parameter_profile() {
+  local phase="${1:-}"
+  local evidence_file="${2:-}"
+  local name boot_value runtime_value restore_value extra target before after
+  case "$phase" in
+    boot|runtime|restore)
+      ;;
+    *)
+      echo "PX4 parameter phase must be boot, runtime, or restore" >&2
+      return 64
+      ;;
+  esac
+  [[ -f "$PX4_PARAM_PROFILE" && -n "$evidence_file" ]] || return 10
+
+  local temporary_file
+  temporary_file="$(mktemp "${evidence_file}.XXXXXX")"
+  while read -r name boot_value runtime_value restore_value extra; do
+    [[ -z "$name" || "$name" == \#* ]] && continue
+    if [[ -n "$extra" || -z "$boot_value" || -z "$runtime_value" || -z "$restore_value" ||
+          ! "$name" =~ ^[A-Z][A-Z0-9_]{0,16}$ ]]; then
+      echo "Invalid PX4 parameter profile row for $name" >&2
+      return 64
+    fi
+    case "$phase" in
+      boot) target="$boot_value" ;;
+      runtime) target="$runtime_value" ;;
+      restore) target="$restore_value" ;;
+    esac
+    before="$(px4_parameter_value "$name")"
+    if ! px4_numeric_equal "$before" "$target"; then
+      px4_client param set "$name" "$target" >/dev/null
+    fi
+    after="$(px4_parameter_value "$name")"
+    px4_numeric_equal "$after" "$target" || {
+      echo "PX4 parameter readback mismatch: $name=$after, expected $target" >&2
+      return 12
+    }
+    printf '%s before=%s target=%s after=%s\n' "$name" "$before" "$target" "$after" \
+      >>"$temporary_file"
+  done <"$PX4_PARAM_PROFILE"
+  px4_client param save >/dev/null
+  mv "$temporary_file" "$evidence_file"
+}
+
 require_runtime() {
   local path
   for path in \
@@ -49,6 +133,8 @@ require_runtime() {
     "$ROS_PREFIX/lib/rviz2/rviz2" \
     "$ROS_PREFIX/lib/libMrsOctomapPlanner_MinimalOctomapPlanner.so" \
     "$MAVROS_OVERLAY_HOST_LIB_DIR/libmavros_plugins.so" \
+    "$STACK_ROOT/vendor/PX4-Autopilot/build/px4_sitl_default/bin/px4" \
+    "$PX4_PARAM_PROFILE" \
     "$FFMPEG" \
     "$FFPROBE"; do
     [[ -e "$path" ]] || {

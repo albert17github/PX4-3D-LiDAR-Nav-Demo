@@ -4,6 +4,21 @@
 
 在 Ubuntu 24 桌面中实时显示 Gazebo 和 RViz，让 PX4 SITL 无人机使用三维 LiDAR + IMU 完成定位与 OctoMap 建图，调用开源 MRS 三维 A* 规划器获得固定 A→B 或 RViz 交互目标路径，再通过 MAVROS OFFBOARD 位置航点实际飞完整条路径并自动降落。交互模式作为后续演示技术底座，应在同一会话中支持多次选点，同时保持自写代码只承担薄编排和安全连接层。
 
+## LIO position/velocity/yaw authority — 4-FLIGHT PASS (2026-08-05)
+
+- 长距离、多次飞行后“箭头乱、飞机乱飞”的主因不是 A*：旧配置 `EKF2_EV_CTRL=1` 只融合 DLIO 水平位置，PX4 yaw 仍由磁航向/IMU 独立维护；PX4 heading reset 会把 `LOCAL_FRD` 外部位置重新旋转。历史异常中位置跳变量与 `2 r sin(Δyaw/2)` 一致，且 A* 在发散前未被调用。
+- 当前修复不更换 SLAM、规划器或飞控算法。`config/px4-lio-yaw.params` 定义三个生命周期：启动兼容态 `EKF2_EV_CTRL=1, EKF2_MAG_TYPE=6`；DLIO 就绪后的飞行态 `EKF2_EV_CTRL=13`（horizontal position + body velocity + yaw）；安全停机恢复态 `EKF2_EV_CTRL=1, EKF2_MAG_TYPE=0`。`MAG_TYPE=6` 只用于上电初始化，飞行中磁航向不再与 LIO yaw 竞争。
+- `scripts/start.sh` 会先用 PX4 `PX4_SIM_MODEL=shell` 最小启动修复持久参数，即使虚拟机异常退出、上次来不及恢复，也能重新进入共享基线的启动合同。基线 READY 且已证明 landed/disarmed 后才切换到 runtime profile；只有实时读到 `cs_ev_pos/cs_ev_vel/cs_ev_yaw=True`、`cs_mag_hdg/cs_mag_3d=False`、`cs_ev_yaw_fault=False` 才继续启动 planner/RViz。
+- `scripts/stop.sh` 只在 MAVROS 同时证明 `armed=false`、`landed_state=1` 时恢复共享基线参数；本轮 readback 为 `EV_CTRL 13→1`、`MAG_TYPE 6→0`。若落地条件不能证明则跳过写参，由下一次项目启动的最小 shell 修复，绝不在飞行中切换估计器。
+- MAVROS `ODOMETRY` 的 `MAV_FRAME_LOCAL_FRD` 是 PX4 对本地外部里程计的官方帧语义；此时 `cs_yaw_align=False` 是 EKF2 源码的预期状态，不能为了让标志变 True 而伪装成 `LOCAL_NED`。真实系统无磁航向时，应在实际启动编排中让 LIO yaw 在飞行前可用；有磁航向时可像本仿真一样只用于初始 `map→odom` 对齐，飞行中仍保持单一 LIO yaw 权限。
+- `src/ab_mission.py` 现在保持当前航向垂直起飞，到 `2.2 m` 后才以不超过 `45°/s` 原地转到任务 yaw；每个 waypoint 同时检查位置和 `10°` yaw 误差。满负载实测 `/mavros/state` 仅 `0.55..1 Hz`，低频状态门改为 `5 s` 以容忍一次漏报；真正的控制反馈 `/mavros/local_position/odom` watchdog 仍保持 `0.5 s`。
+- 正式验证 demo run `runs/20260805-151557-Otlbug`、base run `/home/albert/PX4-LiDAR-SLAM-Sim/runtime/runs/20260805-151611-RZ9WfJ` 已 clean stop。启动总计 `303 s`：参数准备 `8 s`、base readiness `262 s`、估计器/no-GCS `8 s`、planner `17 s`、RViz/recording `8 s`。
+- 同一个 PX4/EKF2/DLIO/OctoMap 实例连续四次 PASS：`(7,0)→(7,7)`、`(7,7)→(7,3)`、`(7,3)→(9,3)`、`(9,3)→(9,5)`；目标 yaw 依次为 `+135°/-135°/0°/180°`，路径长 `7.730/4.045/2.183/2.228 m`，目标误差 `0.051/0.045/0.028/0.045 m`，最远目标半径 `10.296 m`，每轮均 AUTO.LAND、landed/disarmed。
+- 四份闭合 ULog `07_35_07.ulg`、`07_37_17.ulg`、`07_39_30.ulg`、`07_41_12.ulg` 独立证明：飞行中 EV position/velocity/yaw 始终启用，磁航向始终关闭，horizontal position/velocity/yaw innovation 全部未拒绝，failsafe/failure detector 为零，ULog dropout 为零；`heading_reset_counter` 和 `quat_reset_counter` 各自全程固定为 `2`，飞行中增量均为 `0`。
+- 使用一套固定 SE(2)（禁止逐航次重新对齐）比较任意 DLIO 局部系与 Gazebo ground truth，四次飞行合计位置残差 mean/p95/max=`0.053/0.110/0.128 m`，yaw 残差 mean/p95/max=`0.60°/1.78°/3.04°`。机器摘要为 `runs/20260805-151557-Otlbug/evidence/lio-yaw-ulog-summary.json`，最终截图、`112 MB` RViz 视频、4 个 mission JSON、参数 readback、地图与 SHA-256 同目录保存。
+- 验证途中另发现两个独立边界：部分目标会被上游 MRS 返回 `Incomplete path`，控制器会悬停重试后自动降落；一次 SITL `battery_simulator` 工作项虽显示 running 但停止发布，PX4 以 `Battery unhealthy` 拒绝再次解锁，落地后重启模拟电池模块才恢复。两者均 fail-closed，没有引发乱飞；电池模块现象属于仿真运行时问题，不能用关闭实机电池健康门来规避。
+- 版本基线已推送到私有 GitHub 仓库 `albert17github/PX4-3D-LiDAR-Nav-Demo`：初始提交 `1f535b2`、标签 `v0.1.0-initial`。本修复在 `fix/lio-yaw-authority` 分支叠加；完成提交后以 `v0.2.0-lio-yaw` 标记，后续工作从该版本继续。
+
 ## Startup recovery and optimization PASS — 2026-08-05
 
 - 虚拟机在 demo run `runs/20260805-110928-9hWdJE` 启动期间异常重启；base run `/home/albert/PX4-LiDAR-SLAM-Sim/runtime/runs/20260805-110934-bhEfY4` 已完成全部组件 readiness，但仍在执行重复的完整 startup health。重启后没有受管进程存活，两层 stale marker 已通过现有 `scripts/stop.sh` / `stop_sim.sh` 有序封存，失败证据保留。
@@ -12,7 +27,7 @@
 - 改动面限制为基线启动编排入口与本项目 `scripts/start.sh`，不改变任何 health 阈值、算法、topic、frame、参数或飞行安全检查。回退无需修改文件：使用 `PX4_DEMO_STARTUP_HEALTH_MODE=full ./demo.sh --interactive` 即恢复原完整 startup health；若验证失败，则移除本项目传参并撤销基线新增选项。
 - 新冷启动 demo run `runs/20260805-113113-Yd1sN7`、base run `/home/albert/PX4-LiDAR-SLAM-Sim/runtime/runs/20260805-113117-NrNymV` 实测 PASS：base readiness `263 s`、no-GCS policy `1 s`、planner `19 s`、RViz/录像 `4 s`，从入口到 `waiting_for_interactive_goal` 总计 `287 s`（4 分 47 秒）。此前四次成功 demo 冷启动为 `655..784 s`，本次节省 `368..497 s`，约快 `56%..63%`。
 - 本轮可见证据为 `evidence/desktop-readiness.png` 与 `evidence/rviz-readiness.png`：Gazebo 场景、RViz 3D LiDAR、PX4 EKF2 pose 和 OctoMap 同屏可见且状态为 OK。在线只读核验得到 MAVROS `connected=True`、local odom frame=`map`、二进制 `OcTree` resolution=`0.4`、occupied width=`1622`，planner service 为 `mrs_modules_msgs/srv/Path`。
-- 截至本次交接，会话仍在运行并停在 `waiting_for_interactive_goal`，没有自动解锁或触发新飞行；用户可直接在 RViz 使用 `2D Goal Pose`。快速模式已经真实冷启动验证，`full` 模式保留为基线默认并通过静态检查，但本轮没有再花 10–13 分钟重复一次完整 66 项运行时审计。
+- 该优化验证会话后来已通过统一停止入口关闭；它只验证冷启动和等待状态，没有自动解锁或触发飞行。快速模式已经真实冷启动验证，`full` 模式保留为基线默认并通过静态检查，但本轮没有再花 10–13 分钟重复一次完整 66 项运行时审计。
 - 上一启动周期的 journal 在 `11:17:51` 突然结束，未记录 OOM、kernel panic 或 systemd failed unit；因此只能确认虚拟机发生非正常重启，不能把原因归结为项目或某个 VMware 组件。
 
 ## Current state — PERSISTENT MULTI-GOAL + STABLE YAW PASS (2026-08-04)
@@ -147,13 +162,14 @@ shellcheck -x demo.sh scripts/*.sh
 证据校验示例：
 
 ```bash
-cd runs/20260803-144745-8J6JGv/evidence
+cd runs/20260805-151557-Otlbug/evidence
 sha256sum -c sha256.txt
 ```
 
 ## Important files
 
 - `src/ab_mission.py`：planner client、独立路径校验、OFFBOARD 执行与安全落地。
+- `config/px4-lio-yaw.params`：PX4 boot/runtime/restore 三阶段 external odometry 与 yaw 权限合同。
 - `config/demo.yaml`：A/B、交互目标、几何验收、速度、warmup 与规划重试合同。
 - `config/planner.yaml`：MRS planner 参数。
 - `reports/index.html`、`reports/status.json`、`reports/guided-experiment-20260803.json`：最终逐步网页报告、状态和机器摘要。
@@ -163,6 +179,7 @@ sha256sum -c sha256.txt
 - `runs/20260804-193505-kEjVgs/evidence/`：无 QGC 交互飞行 PASS 的视频、截图、地图、参数 readback、任务 JSON 与哈希。
 - `runs/20260804-202200-Hs10L6/evidence/`：同一会话两次实际飞行、两个独立 mission JSON、视频、地图和哈希。
 - `runs/20260804-203906-n9Br4K/evidence/`：固定 `+90°` 朝向的实际 yaw/target yaw 轨迹、任务 JSON、视频、地图和哈希。
+- `runs/20260805-151557-Otlbug/evidence/`：LIO position/velocity/yaw 修复后的四次连续任务、四份 ULog 汇总、Gazebo 真值对照、视频、参数生命周期 readback 与哈希。
 
 ## Known boundaries
 
@@ -171,6 +188,8 @@ sha256sum -c sha256.txt
 - 安全接受依赖预期圆柱几何的独立连续线段检查，同时 health gate 证明路径来源于在线 OctoMap；它不是任意场景的通用碰撞证明。
 - 交互模式是一点一飞一降后继续等待的顺序多任务会话，不是一次解锁后连续穿越多个目标；每一轮都重新走 planner、安全检查、OFFBOARD、AUTO.LAND 和 landed/disarmed 合同。
 - `NAV_DLL_ACT=0` 只适用于这个没有 GCS 的 PX4 SITL 演示；迁移实机时必须重新设计 GCS/RC data-link-loss action，不得照搬。
+- 真机必须在解锁前建立唯一且连续的 yaw 权限：有可用磁航向时只允许它完成初始化，无磁航向时必须等待 LIO yaw 就绪；本项目不允许在飞行中切换磁航向与 LIO yaw。
+- 本轮一次 `battery_simulator` work item 停止发布、但仍显示 running，PX4 正确以 `Battery unhealthy` 拒绝再次解锁；这是待单独定位的 SITL 生命周期问题，不能通过关闭真机电池健康门规避。
 - 用户失败 run `/home/albert/PX4-LiDAR-SLAM-Sim/runtime/runs/20260804-190430-Li1Gq0` 证明 QGC 的 `255.190` 流量触发 MAVROS 在 `MAV_CMD 520` 后 `double free or corruption`，导致 `/mavros/odometry/out` 只有 relay publisher、没有 MAVROS subscriber；原残留 DLIO/relay 已按记录身份 force-cleanup，证据保留。
 - 首次 no-QGC flight run `runs/20260804-191913-jd7EDM` 证明基础栈、DLIO relay 和建图均 PASS，但 x500 默认 `NAV_DLL_ACT=2` 导致 arm 被拒；该失败证据原样保留，后续正式 run 通过官方参数 `0` 完整闭环。
 - 2026-08-04 验证期间一次长航程交互任务在 waypoint 4 被既有 watchdog fail-closed 并安全降落；保留 run `20260804-165441-3R7iBU`。后续错误已改为输出 connected/armed/mode/state age/odom age 明细，未放宽阈值。
