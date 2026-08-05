@@ -16,7 +16,7 @@
 - 修正场景后的两个独立正式 run 均完整 PASS：`runs/20260805-182916-btMc4A` 路径 `12.88595 m`、cross-track `3.11127 m`、中心距 `2.96055 m`、B 误差 `0.02440 m`；`runs/20260805-183516-xIDcJr` 路径 `12.72449 m`、cross-track `3.11127 m`、中心距 `2.92710 m`、B 误差 `0.03733 m`。两轮均 visible Gazebo + RViz、在线 OctoMap、完整 MRS path、OFFBOARD、arm、全部 waypoint、AUTO.LAND、landed/disarmed、截图/视频/地图 SHA-256 全通过，clean stop 后受管进程与两层 active marker 均为 0。
 - 两轮冷启动总计 `235/237 s`，底层 readiness `194/198 s`；相对此前已优化的 `287 s` 再缩短约 `17%..18%`。另修复 MRS component discovery 的瞬时竞态：容器必须显式 ready，load 使用 `10 s` discovery 并最多重试 3 次；一次未解锁失败 run `20260805-182343-iauTdk` 原样保留，随后两轮均首次加载成功。
 - `src/ab_mission.py` 的 waypoint settle timeout 现在至少 `10 s`，并按航段飞行时间加 `8 s` 余量；整个 settle 期间仍执行 `0.5 s` odometry 与 OFFBOARD watchdog。这修复了到达容差边缘时刚进入稳定窗口便超时的问题，不是放松飞行状态门。
-- 版本路线：`v0.1.0-initial` → `v0.2.0-lio-yaw` → `v0.3.0-self-contained`。GitHub 当前仍为 private，顶层也尚未由所有者选择 LICENSE；公开可见性和许可证均需用户明确决定。
+- 版本路线：`v0.1.0-initial` → `v0.2.0-lio-yaw` → `v0.3.0-self-contained` → `v0.3.1`（公开开源发布）。用户已明确授权将 GitHub repository visibility 改为 `public`；项目自写的启动编排、薄任务连接层、配置和文档采用 `Apache-2.0`，上游组件与源自上游代码的补丁继续受各自许可证约束。公开前对全部 Git 历史做了已知 token/private-key 模式扫描，唯一命中是进程归属校验使用的非敏感运行时 `token` 字段；仓库无 Actions run、release 或超过 5 MB 的历史 blob。
 - 未删除任何旧项目或历史证据。被忽略的失败复制目录 `runtime/.setup/rootfs.partial-20260805-1655` 约 `1.4 GiB` 也仍保留，只有用户确认准确路径后才能删除。
 
 以下章节为本轮自包含改造之前的历史记录；涉及“共享基线”或旧 `(3.5,3.5)` 计算的描述用于追溯，不再代表当前启动链与几何口径。

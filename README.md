@@ -1,5 +1,7 @@
 # PX4 3D LiDAR A→B Navigation Demo
 
+[Apache-2.0](LICENSE) · [GitHub](https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo)
+
 这是一个刻意保持简洁的实时图形化仿真项目。它不实现新的 SLAM 或规划算法，只把成熟开源组件连接成闭环：
 
 ```text
@@ -56,8 +58,8 @@ cd PX4-3D-LiDAR-Nav-Demo
 安装可重复执行，完成后也可用 `./setup.sh --verify-only` 只做完整性核验。
 版本、下载内容和故障恢复见 [docs/REPRODUCE.md](docs/REPRODUCE.md)。
 
-> 当前 GitHub 仓库仍是 private；未被授权的普通用户要使用上面的 clone
-> 命令，需要仓库所有者另行将其公开或添加 collaborator。
+本仓库为 public，任何用户都可以直接 clone。首次安装会下载固定版本的上游源码和
+签名软件包，不需要本机存在作者的其他项目。
 
 ## 运行
 
@@ -149,7 +151,16 @@ DLIO、OctoMap、A* 或 PX4 算法，也没有降低安全阈值。
 - 初始基线：commit `1f535b2`，tag `v0.1.0-initial`。
 - LIO yaw 修复：tag `v0.2.0-lio-yaw`，后续修改从此版本继续叠加。
 - 自包含运行时、正确几何合同与两次独立 PASS：tag `v0.3.0-self-contained`。
-- 私有仓库：<https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo>。
+- 公开开源发布与 Apache-2.0：tag `v0.3.1`。
+- 公开仓库：<https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo>。
+
+## 许可证
+
+本项目自写的启动编排、任务连接层、配置和文档使用
+[Apache License 2.0](LICENSE)。由安装脚本取得的 PX4、Gazebo、ROS 2、DLIO、
+MAVROS、OctoMap、MRS、PRoot 和 Ubuntu 内容，以及 `runtime/patches/` 中源自
+上游代码的补丁，继续遵守各自原许可证；详见
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 详细当前状态和一键复核命令见 [PROJECT_MEMORY.md](PROJECT_MEMORY.md)，静态报告源文件见 [reports/index.html](reports/index.html)。
 

@@ -330,13 +330,15 @@
     <section class="section" id="self-contained" aria-labelledby="self-contained-title">
       <div class="section-head">
         <div><span class="section-head__index">00 / SELF-CONTAINED RELEASE</span><h2 id="self-contained-title">一个 checkout，就是唯一运行入口</h2></div>
-        <p>GitHub 保存版本锁、补丁、world、模型与安装配方；大型 rootfs、上游源码和 build 由 setup 在项目内生成，不再借用兄弟项目。</p>
+        <p>公开 GitHub 仓库保存版本锁、补丁、world、模型与安装配方；项目自写部分采用 Apache-2.0，大型 rootfs、上游源码和 build 由 setup 在项目内生成。</p>
       </div>
       <div class="contract" aria-label="自包含运行时合同">
         <div class="contract__item"><span>First setup</span><strong>./setup.sh --install-host-deps</strong></div>
         <div class="contract__item"><span>Integrity</span><strong>./setup.sh --verify-only</strong></div>
         <div class="contract__item"><span>Generated runtime</span><strong>≈ 14 GiB · ignored</strong></div>
         <div class="contract__item"><span>Sibling dependencies</span><strong>0 in default path</strong></div>
+        <div class="contract__item"><span>Visibility</span><strong>GitHub public</strong></div>
+        <div class="contract__item"><span>Project license</span><strong>Apache-2.0</strong></div>
       </div>
       <div class="result-layout" style="margin-top:18px">
         <div class="table-wrap">

@@ -1,8 +1,9 @@
 {
-  "updated_at": "2026-08-05T18:41:00+08:00",
+  "updated_at": "2026-08-05T20:19:04+08:00",
   "state": "completed",
   "phase": "项目内自包含运行时、正确 SE(2) 几何合同和两次独立 A→B 实际飞行全部 PASS；当前已 clean stop",
   "summary": "默认启动不再依赖兄弟项目。车辆保留 0.55 rad 非零初始航向，cyan_pillar 经 world-to-map 变换后严格位于 map=(3.5,3.5) 的 A→B 中点；两次路径中心距 2.961/2.927 m，B 误差 0.024/0.037 m，均自动降落。",
+  "publication": {"repository": "albert17github/PX4-3D-LiDAR-Nav-Demo", "visibility": "public", "license": "Apache-2.0"},
   "active_run": null,
   "progress": 100,
   "steps": [

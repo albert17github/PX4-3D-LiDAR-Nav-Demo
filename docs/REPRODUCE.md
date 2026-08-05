@@ -110,13 +110,11 @@ git grep -n '/home/albert/PX4-LiDAR-SLAM-Sim' -- \
 `seed-runtime.sh` 中出现旧路径字样只属于明确的迁移排除规则，不参与默认
 安装或启动。
 
-## 发布前仍需仓库所有者决定
+## 开源发布与许可证
 
-当前 GitHub 仓库是 private，且仓库顶层没有选定项目许可证。脚本和环境已经
-可以复刻，但要让任何陌生用户直接 clone、修改和再分发，还需要仓库所有者
-明确决定：
-
-1. 是否把 repository visibility 改为 public；
-2. 自写薄连接层采用哪一种许可证。
-
-这两项涉及访问权限和法律授权，自动化脚本不会自行修改。
+GitHub repository visibility 为 `public`，无需 collaborator 权限即可 clone。
+项目自写的薄连接层、启动脚本、配置和文档使用 `Apache-2.0`；完整条款位于
+仓库顶层 [`LICENSE`](../LICENSE)。安装脚本下载的上游组件及
+`runtime/patches/` 中源自上游代码的内容继续遵守各自许可证，不能因为本项目
+采用 `Apache-2.0` 而覆盖；具体边界见
+[`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)。
