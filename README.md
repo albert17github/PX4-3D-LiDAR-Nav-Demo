@@ -43,20 +43,23 @@ PX4 SITL + Gazebo 3D LiDAR
 ## 首次安装与复刻
 
 仓库不提交数 GB 的 Ubuntu、ROS、PX4 和编译产物，而是提交版本锁、补丁、
-模型、世界和安装配方。克隆后只需先安装一次项目内运行时：
+模型、世界和安装配方。项目只正式支持文档列出的 Ubuntu 24.04 桌面环境；
+请先按 [复刻说明](docs/REPRODUCE.md) 安装宿主机命令，再执行：
 
 ```bash
 git clone https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo.git
 cd PX4-3D-LiDAR-Nav-Demo
-./setup.sh --install-host-deps
+./scripts/check_environment.sh --setup
+./setup.sh
 ./demo.sh --interactive
 ```
 
-如果宿主机已经有 `Xephyr`、`xdotool` 等小型桌面工具，第三行可改为
-`./setup.sh`，不需要 `sudo`。所有下载源码、rootfs 和构建产物都生成在当前
-仓库的 `runtime/` 下；默认启动不读取 `/home/albert` 下的任何兄弟项目。
+检查脚本不会安装软件或修改系统。所有下载源码、rootfs 和构建产物都生成在
+当前仓库的 `runtime/` 下；默认启动不读取 `/home/albert` 下的任何兄弟项目。
 安装可重复执行，完成后也可用 `./setup.sh --verify-only` 只做完整性核验。
-版本、下载内容和故障恢复见 [docs/REPRODUCE.md](docs/REPRODUCE.md)。
+每个阶段失败时会显示阶段名称、退出码和日志路径；网络、软件源及宿主机配置
+问题由用户按原始错误自行处理。推荐环境、确切版本和阶段说明见
+[docs/REPRODUCE.md](docs/REPRODUCE.md)。
 
 本仓库为 public，任何用户都可以直接 clone。首次安装会下载固定版本的上游源码和
 签名软件包，不需要本机存在作者的其他项目。

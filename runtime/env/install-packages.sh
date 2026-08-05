@@ -62,7 +62,7 @@ cleanup_px4_setup_temp() {
 trap cleanup_px4_setup_temp EXIT
 install -m 0755 "$PX4_SETUP_SOURCE/ubuntu.sh" "$PX4_SETUP_TEMP/ubuntu.sh"
 install -m 0644 "$PX4_SETUP_SOURCE/requirements.txt" "$PX4_SETUP_TEMP/requirements.txt"
-# PX4 v1.16.0 still writes the OSRF package repository with HTTP.  Some
+# The pinned PX4 installer still writes the OSRF package repository with HTTP. Some
 # networks reject port 80 even though the same signed repository is available
 # over HTTPS.  Patch only an ephemeral installer copy so the pinned PX4 source
 # tree remains pristine and source verification stays meaningful.

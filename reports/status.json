@@ -1,28 +1,31 @@
 {
-  "updated_at": "2026-08-05T20:19:04+08:00",
-  "state": "completed",
-  "phase": "项目内自包含运行时、正确 SE(2) 几何合同和两次独立 A→B 实际飞行全部 PASS；当前已 clean stop",
-  "summary": "默认启动不再依赖兄弟项目。车辆保留 0.55 rad 非零初始航向，cyan_pillar 经 world-to-map 变换后严格位于 map=(3.5,3.5) 的 A→B 中点；两次路径中心距 2.961/2.927 m，B 误差 0.024/0.037 m，均自动降落。",
-  "publication": {"repository": "albert17github/PX4-3D-LiDAR-Nav-Demo", "visibility": "public", "license": "Apache-2.0"},
+  "updated_at": "2026-08-06T00:44:00+08:00",
+  "state": "completed_with_warning",
+  "phase": "推荐环境检查、分阶段错误、软件内图片和介绍页已经完成；端到端 A→B 任务 PASS",
+  "summary": "项目只正式支持 Ubuntu 24.04 x86_64 推荐环境。新增检查不会修改用户系统；setup 失败会显示阶段和日志。20260806-001212-uVRmSE 实际飞行目标误差 0.037 m，并 AUTO.LAND。停止后进程归零，但参数 restore 证据因未再次证明 landed 而跳过。",
+  "publication": {
+    "repository": "albert17github/PX4-3D-LiDAR-Nav-Demo",
+    "visibility": "public",
+    "license": "Apache-2.0",
+    "branch": "fix/bounded-px4-fetch"
+  },
   "active_run": null,
   "progress": 100,
   "steps": [
-    {"name": "Runtime · Project Owned", "state": "done", "detail": "setup 在当前 checkout 的 runtime 内下载、构建并核验固定 PX4、DLIO、MAVROS、ROS/Gazebo、OctoMap 与 MRS"},
-    {"name": "Concurrency · MAVROS", "state": "done", "detail": "固定 MAVROS 2.14.0 应用 vehicles 与 router address 两组上游锁修复，二进制哈希进入 runtime lock"},
-    {"name": "Geometry · SE(2)", "state": "done", "detail": "配置与 SDF 自动核对；0.55 rad 初始航向下圆柱严格映射到 map=(3.5,3.5)，真正位于 A→B 中线"},
-    {"name": "Startup · Bounded Discovery", "state": "done", "detail": "逐组件 readiness 保留；MRS container 必须显式 ready，component load 使用 10 s discovery 与最多 3 次有界重试"},
-    {"name": "Flight · Independent Run 01", "state": "done", "detail": "12.886 m 路径，cross-track 3.111 m，中心距 2.961 m，B 误差 0.024 m，AUTO.LAND"},
-    {"name": "Flight · Independent Run 02", "state": "done", "detail": "12.724 m 路径，cross-track 3.111 m，中心距 2.927 m，B 误差 0.037 m，AUTO.LAND"},
-    {"name": "Evidence · Shutdown", "state": "done", "detail": "两轮截图、视频、地图、JSON 和 SHA-256 全通过；受管进程与活动标记均为 0"}
+    {"name": "Environment", "state": "done", "detail": "Ubuntu 24.04、x86_64、Bash/Git/Python、CPU、RAM、disk、DISPLAY、runtime 与 source commit 检查"},
+    {"name": "Setup errors", "state": "done", "detail": "六阶段输出；失败显示 stage、log 和 rerun command，不自动切换客户网络配置"},
+    {"name": "Runtime verify", "state": "done", "detail": "当前机 --run 与 setup --verify-only PASS；空 DISPLAY 负向检查 exit 10"},
+    {"name": "Flight", "state": "done", "detail": "9 点路径，13.507 m，cross-track 3.394 m，中心距 3.129 m，目标误差 0.037 m，AUTO.LAND"},
+    {"name": "Images", "state": "done", "detail": "Gazebo Screenshot plugin 与 RViz Save Image 生成 4 张软件内部视图，已逐张检查"},
+    {"name": "Report", "state": "done", "detail": "介绍页重写并在 Firefox 实际打开；页面和 4 张图片 HTTP 均为 200"},
+    {"name": "Shutdown", "state": "warning", "detail": "受管进程和 marker 为 0；px4_lio_restore=SKIPPED_NOT_PROVEN_LANDED"}
   ],
   "evidence": [
-    {"name": "正式 run 01", "detail": "9 点完整路径、正确几何指标、全部航点与自动降落", "href": "../runs/20260805-182916-btMc4A/evidence/mission-result.json"},
-    {"name": "正式 run 01 桌面", "detail": "Gazebo、RViz、实时 LiDAR 与在线 OctoMap 同屏", "href": "../runs/20260805-182916-btMc4A/evidence/gazebo-rviz-desktop.png"},
-    {"name": "正式 run 01 哈希", "detail": "本轮全部 evidence 逐项校验", "href": "../runs/20260805-182916-btMc4A/evidence/sha256.txt"},
-    {"name": "正式 run 02", "detail": "独立冷启动后的第二条完整路径、全部航点与自动降落", "href": "../runs/20260805-183516-xIDcJr/evidence/mission-result.json"},
-    {"name": "正式 run 02 RViz", "detail": "Global、LiDAR、OctoMap 状态 OK，路径与最终位姿可见", "href": "../runs/20260805-183516-xIDcJr/evidence/rviz-final.png"},
-    {"name": "正式 run 02 视频", "detail": "95.375 s H.264，在线地图、路径执行与落地", "href": "../runs/20260805-183516-xIDcJr/evidence/rviz-ab-demo.mp4"},
-    {"name": "正式 run 02 哈希", "detail": "本轮全部 evidence 逐项校验", "href": "../runs/20260805-183516-xIDcJr/evidence/sha256.txt"},
-    {"name": "LIO yaw 四次连续任务", "detail": "历史 4-FLIGHT ULog 与 Gazebo 真值证据仍保留", "href": "../runs/20260805-151557-Otlbug/evidence/lio-yaw-ulog-summary.json"}
+    {"name": "介绍页", "detail": "真实软件画面、技术路线、推荐环境和复刻命令", "href": "index.html"},
+    {"name": "Gazebo world", "detail": "Screenshot plugin 原始 3D scene", "href": "assets/gazebo-world-ready.png"},
+    {"name": "RViz map", "detail": "Save Image 原始 render panel", "href": "assets/rviz-map-ready.png"},
+    {"name": "RViz path", "detail": "本轮 9 点规划路径", "href": "assets/rviz-flight-path.png"},
+    {"name": "Gazebo landed", "detail": "B 点落地后的 x500 与 3D LiDAR", "href": "assets/gazebo-landed-b.png"},
+    {"name": "图片来源", "detail": "尺寸、导出方式、视觉检查和 SHA-256", "href": "assets/README.md"}
   ]
 }
