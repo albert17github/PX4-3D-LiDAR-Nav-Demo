@@ -6,3 +6,18 @@ evidence/*.mcap
 __pycache__/
 *.pyc
 
+# Generated project-owned runtime. Recipes/configs/models/patches remain tracked.
+runtime/.runtime/
+runtime/.setup/
+runtime/env/cache/
+runtime/env/proot
+runtime/env/rootfs/
+runtime/env/rootfs.extracting/
+runtime/logs/
+runtime/mavros-build/
+runtime/mavros-overlay/
+runtime/mavros-src/
+runtime/ros2_ws/
+runtime/runs/
+runtime/third_party/
+runtime/vendor/

@@ -1,0 +1,72 @@
+/**:
+  ros__parameters:
+    use_sim_time: true
+
+    # Upstream VECTR-UCLA DLIO feature/ros2 profile for this Gazebo sensor.
+    version: "1.1.1-c8acc371"
+    verbose: false
+    frames/odom: odom
+    frames/baselink: base_link
+    frames/lidar: lidar_link
+    frames/imu: imu_link
+
+    # Gazebo publishes one timestamped snapshot without per-point firing time.
+    # DLIO still uses IMU propagation between scans when deskew is disabled.
+    pointcloud/deskew: false
+    # The native 1x gate retained the full 50 Hz output contract with this
+    # disabled (0.036 s max stamp gap); the voxelized gate reached 0.296 s.
+    pointcloud/voxelize: false
+    odom/computeTimeOffset: false
+
+    # Upstream adaptive mode replaces threshD with the scene spaciousness
+    # (about 4--5 m in this course) and halves the GICP correspondence range.
+    # The isolated same-bag A/B therefore keeps the explicit small-UAV values.
+    adaptive: false
+    map/waitUntilMove: false
+    map/dense/filtered: false
+    map/sparse/leafSize: 0.25
+
+    odom/gravity: 9.80665
+    imu/calibration: true
+    odom/imu/approximateGravity: true
+    odom/imu/calibration/gyro: true
+    odom/imu/calibration/accel: true
+    odom/imu/calibration/time: 3.0
+    odom/imu/bufferSize: 5000
+
+    # MAVROS data_raw is already ROS FLU at the vehicle center in SITL.
+    extrinsics/baselink2imu/t: [0.0, 0.0, 0.0]
+    extrinsics/baselink2imu/R: [1.0, 0.0, 0.0,
+                                0.0, 1.0, 0.0,
+                                0.0, 0.0, 1.0]
+
+    # Sensor pose from models/x500_lidar_3d/model.sdf.
+    extrinsics/baselink2lidar/t: [0.0, 0.0, 0.135]
+    extrinsics/baselink2lidar/R: [1.0, 0.0, 0.0,
+                                  0.0, 1.0, 0.0,
+                                  0.0, 0.0, 1.0]
+
+    odom/preprocessing/cropBoxFilter/size: 1.0
+    odom/preprocessing/voxelFilter/res: 0.20
+    odom/keyframe/threshD: 0.25
+    odom/keyframe/threshR: 10.0
+    odom/submap/keyframe/knn: 10
+    odom/submap/keyframe/kcv: 10
+    odom/submap/keyframe/kcc: 10
+
+    odom/gicp/minNumPoints: 64
+    odom/gicp/kCorrespondences: 16
+    odom/gicp/maxCorrespondenceDistance: 0.75
+    odom/gicp/maxIterations: 32
+    odom/gicp/transformationEpsilon: 0.005
+    odom/gicp/rotationEpsilon: 0.005
+    odom/gicp/initLambdaFactor: 1.0e-9
+
+    # Keep the upstream geometric-observer gains initially; tune only from bags.
+    odom/geo/Kp: 4.5
+    odom/geo/Kv: 11.25
+    odom/geo/Kq: 4.0
+    odom/geo/Kab: 2.25
+    odom/geo/Kgb: 1.0
+    odom/geo/abias_max: 5.0
+    odom/geo/gbias_max: 0.5

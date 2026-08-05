@@ -13,8 +13,9 @@
 
 - 主入口保持为 `./demo.sh`，分步入口保持为 `./scripts/start.sh`、`./scripts/fly_ab.sh`、`./scripts/stop.sh`。
 - 不引入新的审计框架、seal schema、策略哈希矩阵或多层 mission coordinator。
-- 重型 PX4/ROS 运行时暂时复用只读基线 `/home/albert/PX4-LiDAR-SLAM-Sim`，不要复制其历史 run、报告或审计脚本。
-- 新增依赖前先说明用途；优先使用基线中已安装并验证的开源包。
+- 重型 PX4/ROS 运行时由 `./setup.sh` 按 `runtime/config/versions.env` 生成在本项目 `runtime/`；默认安装和启动不得依赖兄弟项目。
+- `./setup.sh --seed-from` 只允许作为显式迁移加速路径，复制后必须无 symlink、Git alternates 或运行时路径依赖；不要复制旧 run、报告或审计脚本。
+- 新增依赖前先说明用途；优先使用版本锁中已审核并验证的开源包。
 - 不删除或修改基线项目的历史证据。
 
 ## Verification

@@ -6,7 +6,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 fi
 
 DEMO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-STACK_ROOT="${PX4_DEMO_STACK_ROOT:-/home/albert/PX4-LiDAR-SLAM-Sim}"
+STACK_ROOT="${PX4_DEMO_STACK_ROOT:-$DEMO_ROOT/runtime}"
 ROS_ROOTFS="$STACK_ROOT/env/rootfs"
 ROS_PREFIX="$ROS_ROOTFS/opt/ros/jazzy"
 ROS_DOMAIN_ID_VALUE="${ROS_DOMAIN_ID:-0}"
@@ -15,9 +15,9 @@ ROS_LD_LIBRARY_PATH="$ROS_PREFIX/lib:$ROS_PREFIX/lib/x86_64-linux-gnu:$ROS_ROOTF
 ROS_PYTHONPATH="$ROS_PREFIX/lib/python3.12/site-packages:$ROS_ROOTFS/usr/lib/python3/dist-packages:$ROS_ROOTFS/usr/lib/python3.12/dist-packages:$ROS_ROOTFS/usr/local/lib/python3.12/dist-packages"
 FFMPEG="$ROS_ROOTFS/usr/bin/ffmpeg"
 FFPROBE="$ROS_ROOTFS/usr/bin/ffprobe"
-MAVROS_OVERLAY_HOST_LIB_DIR="${PX4_DEMO_MAVROS_OVERLAY_HOST_LIB_DIR:-$STACK_ROOT/runtime/mavros-overlay/lib}"
+MAVROS_OVERLAY_HOST_LIB_DIR="${PX4_DEMO_MAVROS_OVERLAY_HOST_LIB_DIR:-$STACK_ROOT/mavros-overlay/lib}"
 # shellcheck disable=SC2034 # Public value consumed by start.sh after sourcing.
-MAVROS_OVERLAY_GUEST_LIB_DIR="${PX4_DEMO_MAVROS_OVERLAY_GUEST_LIB_DIR:-/project/runtime/mavros-overlay/lib}"
+MAVROS_OVERLAY_GUEST_LIB_DIR="${PX4_DEMO_MAVROS_OVERLAY_GUEST_LIB_DIR:-/project/mavros-overlay/lib}"
 # shellcheck disable=SC2034  # Public value consumed by scripts that source this file.
 RVIZ_DISPLAY="${PX4_DEMO_RVIZ_DISPLAY:-:98}"
 CURRENT_RUN_FILE="$DEMO_ROOT/.runtime/current-run"
@@ -138,7 +138,8 @@ require_runtime() {
     "$FFMPEG" \
     "$FFPROBE"; do
     [[ -e "$path" ]] || {
-      echo "Missing shared runtime file: $path" >&2
+      echo "Missing project-owned runtime file: $path" >&2
+      echo "Run: $DEMO_ROOT/setup.sh" >&2
       return 10
     }
   done

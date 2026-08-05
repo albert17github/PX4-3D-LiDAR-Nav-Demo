@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sdf version="1.9">
+  <world name="lidar_slam_course">
+    <physics name="fast_stable" type="ode">
+      <max_step_size>0.004</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>250</real_time_update_rate>
+    </physics>
+
+    <gravity>0 0 -9.8</gravity>
+    <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
+    <atmosphere type="adiabatic"/>
+
+    <scene>
+      <grid>true</grid>
+      <ambient>0.34 0.38 0.43 1</ambient>
+      <background>0.63 0.72 0.80 1</background>
+      <shadows>true</shadows>
+    </scene>
+
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>47.397971057728974</latitude_deg>
+      <longitude_deg>8.546163739800146</longitude_deg>
+      <elevation>0</elevation>
+    </spherical_coordinates>
+
+    <light name="sun" type="directional">
+      <pose>0 0 40 0 0 0</pose>
+      <cast_shadows>true</cast_shadows>
+      <intensity>1.0</intensity>
+      <direction>-0.35 0.2 -0.91</direction>
+      <diffuse>0.95 0.92 0.84 1</diffuse>
+      <specular>0.25 0.25 0.25 1</specular>
+    </light>
+
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane><normal>0 0 1</normal><size>50 40</size></plane>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <plane><normal>0 0 1</normal><size>50 40</size></plane>
+          </geometry>
+          <material>
+            <ambient>0.23 0.27 0.29 1</ambient>
+            <diffuse>0.34 0.39 0.40 1</diffuse>
+            <specular>0.08 0.08 0.08 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Boundary walls keep all LiDAR rays finite and define the scoring area. -->
+    <model name="wall_north">
+      <static>true</static><pose>0 10 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>24 0.3 5</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>24 0.3 5</size></box></geometry><material><diffuse>0.16 0.28 0.36 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="wall_south">
+      <static>true</static><pose>0 -10 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>24 0.3 5</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>24 0.3 5</size></box></geometry><material><diffuse>0.16 0.28 0.36 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="wall_east">
+      <static>true</static><pose>12 0 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.3 20 5</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.3 20 5</size></box></geometry><material><diffuse>0.16 0.28 0.36 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="wall_west">
+      <static>true</static><pose>-12 0 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.3 20 5</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.3 20 5</size></box></geometry><material><diffuse>0.16 0.28 0.36 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- Asymmetric landmarks prevent ICP ambiguity. -->
+    <model name="cyan_pillar">
+      <!-- With the vehicle's 0.55 rad initial heading, this world pose maps to
+           DLIO map=(3.5,3.5), exactly halfway along the fixed A-to-B line. -->
+      <static>true</static><pose>-6.845569474049038 -1.186758871534423 2.0 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><cylinder><radius>0.65</radius><length>4</length></cylinder></geometry></collision>
+        <visual name="visual"><geometry><cylinder><radius>0.65</radius><length>4</length></cylinder></geometry><material><diffuse>0.04 0.62 0.70 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="amber_pillar">
+      <static>true</static><pose>-1.0 5.5 1.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>1.2 1.2 3</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>1.2 1.2 3</size></box></geometry><material><diffuse>0.95 0.48 0.08 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="red_pillar">
+      <static>true</static><pose>6.5 4.8 2.4 0 0 0.35</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>1.0 1.8 4.8</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>1.0 1.8 4.8</size></box></geometry><material><diffuse>0.73 0.11 0.13 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- A three-piece gate forces the planner to reason about vertical clearance. -->
+    <model name="gate_left">
+      <static>true</static><pose>1.5 -1.9 1.8 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.55 0.7 3.6</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.55 0.7 3.6</size></box></geometry><material><diffuse>0.42 0.24 0.66 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="gate_right">
+      <static>true</static><pose>1.5 1.9 1.8 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.55 0.7 3.6</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.55 0.7 3.6</size></box></geometry><material><diffuse>0.42 0.24 0.66 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="gate_top">
+      <static>true</static><pose>1.5 0 3.55 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.55 4.5 0.55</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.55 4.5 0.55</size></box></geometry><material><diffuse>0.58 0.34 0.82 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <model name="suspended_block">
+      <static>true</static><pose>5.0 -3.5 3.7 0.2 0.0 0.45</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>2.8 2.0 1.0</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>2.8 2.0 1.0</size></box></geometry><material><diffuse>0.91 0.74 0.16 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <model name="slalom_wall_a">
+      <static>true</static><pose>4.0 2.1 1.5 0 0 0.35</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.45 4.2 3.0</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.45 4.2 3.0</size></box></geometry><material><diffuse>0.18 0.48 0.34 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="slalom_wall_b">
+      <static>true</static><pose>8.0 -0.8 1.5 0 0 -0.35</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.45 4.2 3.0</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.45 4.2 3.0</size></box></geometry><material><diffuse>0.18 0.48 0.34 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <include>
+      <uri>model://x500_lidar_3d</uri>
+      <name>x500_lidar_3d</name>
+      <pose>-8 -6 0.25 0 0 0.55</pose>
+    </include>
+  </world>
+</sdf>

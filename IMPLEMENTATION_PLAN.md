@@ -1,8 +1,9 @@
 # PX4 三维 LiDAR 建图与 A→B 避障仿真实施计划
 
 - 项目目录：`/home/albert/PX4-3D-LiDAR-Nav-Demo`
-- 计划版本：`v1.0`
+- 计划版本：`v1.1`
 - 冻结日期：`2026-08-01`
+- 自包含运行时修订：`2026-08-05`
 - 主入口目标：`./demo.sh`
 - 执行原则：一次只推进一个 Gate；先取得可见证据，再进入下一 Gate。
 
@@ -39,8 +40,8 @@ rosbag 回放、静态路径图片都不能替代最终演示。
 
 | 环节 | 冻结方案 | 本项目只做什么 |
 |---|---|---|
-| 飞控 | PX4 v1.17 SITL / EKF2 | 复用现成运行时与参数 |
-| 物理和传感器 | Gazebo Sim / 3D LiDAR | 复用现成世界、机体和传感器 |
+| 飞控 | PX4 v1.17 SITL / EKF2 | 用版本锁生成项目内运行时与参数 |
+| 物理和传感器 | Gazebo Sim / 3D LiDAR | 跟踪本项目世界、机体和传感器配方 |
 | 激光惯性里程计 | Direct LiDAR-Inertial Odometry (DLIO) | 只检查输入、输出和坐标系 |
 | ROS/PX4 接口 | MAVROS | 外部里程计回灌、状态读取、OFFBOARD 航点 |
 | 三维地图 | ROS 2 `octomap_server` | 订阅点云和位姿，发布占据地图 |
@@ -55,7 +56,10 @@ rosbag 回放、静态路径图片都不能替代最终演示。
 - 坐标系：`map`
 - A：`(0.0, 0.0, 2.2)`
 - B：`(7.0, 7.0, 2.2)`
-- 预期圆柱中心（局部 `map`）：`(3.5, 3.5)`
+- 仿真起点（Gazebo world）：`(-8.0,-6.0,yaw=0.55 rad)`
+- 预期圆柱中心（Gazebo world）：`(-6.845569,-1.186759)`
+- 预期圆柱中心（DLIO 局部 `map`）：`(3.5,3.5)`，由上述
+  world 位姿做 SE(2) 变换得到，不把 world 坐标差直接冒充 `map` 坐标
 - 圆柱半径：`0.65 m`
 - 最低演示净距：`0.70 m`
 - 规划中心距下限：`1.35 m`
@@ -86,13 +90,15 @@ rosbag 回放、静态路径图片都不能替代最终演示。
 
 ### 5.1 唯一交付目录
 
-新项目 `/home/albert/PX4-3D-LiDAR-Nav-Demo` 是唯一交付入口。旧项目
-`/home/albert/PX4-LiDAR-SLAM-Sim` 只作为只读重型运行时和历史经验档案：
+新项目 `/home/albert/PX4-3D-LiDAR-Nav-Demo` 是唯一交付入口：
 
-- 可以调用其已安装的 PX4、Gazebo、ROS 2、DLIO、MAVROS 和 OctoMap；
-- 不复制旧 `runs/`、旧报告或旧审计框架到新项目；
-- 不删除旧项目；
-- 如果确实要改旧运行时，必须先在 `PROJECT_MEMORY.md` 说明原因、改动面和回退方法。
+- `./setup.sh` 下载固定上游源码与 Ubuntu rootfs，在本项目 `runtime/` 生成
+  PX4、Gazebo、ROS 2、DLIO、MAVROS、OctoMap 与 MRS 运行时；
+- 默认安装、启动、飞行和停止链不得读取任何兄弟项目；
+- 旧项目只保留为历史档案，不复制旧 `runs/`、报告、ULog 或审计框架；
+- 可选 `--seed-from` 只复制固定哈希缓存，复制后不得留下 symlink、Git
+  alternates 或指向源项目的运行时路径；
+- 删除旧项目必须在本项目独立复刻与两次 clean PASS 后，由用户按准确路径确认。
 
 ### 5.2 新项目必须保持的入口
 
@@ -127,8 +133,8 @@ reports/index.html      人可浏览的状态与证据入口
 - `src/ab_mission.py` 已通过 `py_compile` 和 `--self-test`；
 - MRS `MinimalOctomapPlanner` 已在隔离 ROS domain 中成功加载，服务类型为
   `mrs_modules_msgs/srv/Path`；
-- 宿主缺少 `ffmpeg` 的首次启动前置错误已经定位，当前脚本改为复用旧运行时
-  rootfs 内的 `ffmpeg`/`ffprobe`；
+- 宿主缺少 `ffmpeg` 的首次启动前置错误已经定位；项目内 rootfs 通过安装配方
+  提供 `ffmpeg`/`ffprobe`；
 - 当前没有活动仿真 run，也没有把任何后台结果冒充实时 GUI 结果。
 
 尚未完成：
@@ -161,7 +167,7 @@ reports/index.html      人可浏览的状态与证据入口
 
 状态：`NEXT`
 
-目标：不打开 GUI、不解锁，确认薄连接层和复用运行时可以被找到。
+目标：不打开 GUI、不解锁，确认薄连接层和项目内运行时可以被找到。
 
 执行命令：
 
@@ -409,4 +415,3 @@ SLAM/规划框架，不得删除旧 run。先复现并记录首个根因；最�
 由新的执行模型从 Gate 1 开始，先重跑静态检查和运行时边界。Gate 1 PASS 后，
 停止并汇报；得到继续指令后再进入 Gate 2，重新运行修正了 `ffmpeg` 路径的
 `./scripts/start.sh`，由真实 Gazebo/RViz 窗口决定是否通过。
-

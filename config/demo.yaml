@@ -1,7 +1,13 @@
 frame_id: map
 start: [0.0, 0.0, 2.2]
 goal: [7.0, 7.0, 2.2]
-expected_obstacle_center_xy: [3.5, 3.5]
+# Simulation-only acceptance geometry. DLIO's local map axes inherit the
+# vehicle's initial heading, so world coordinates are transformed before they
+# are compared with planner points in map.
+simulation_map_origin_world_xy_yaw_rad: [-8.0, -6.0, 0.55]
+simulation_vehicle_model_name: x500_lidar_3d
+expected_obstacle_center_world_xy: [-6.845569474049038, -1.186758871534423]
+expected_obstacle_model_name: cyan_pillar
 expected_obstacle_radius_m: 0.65
 minimum_demo_clearance_m: 0.70
 minimum_cross_track_m: 0.55

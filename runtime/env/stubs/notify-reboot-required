@@ -1,0 +1,4 @@
+#!/bin/sh
+# A project-local rootfs has no host reboot lifecycle. Ubuntu package
+# post-install hooks may call this helper, so acknowledge the event and return.
+exit 0

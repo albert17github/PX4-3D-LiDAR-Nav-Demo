@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sdf version="1.9">
+  <model name="x500_lidar_3d">
+    <self_collide>false</self_collide>
+
+    <include merge="true">
+      <uri>model://x500</uri>
+    </include>
+
+    <link name="lidar_link">
+      <!-- The link origin is the optical center so PointCloud2 and TF agree. -->
+      <!-- x500 top plate is at about z=0.052 m; this puts the LiDAR base
+           directly on that plate while keeping its optical origin above it. -->
+      <pose relative_to="base_link">0 0 0.135 0 0 0</pose>
+      <inertial>
+        <pose>0 0 -0.033 0 0 0</pose>
+        <mass>0.35</mass>
+        <inertia>
+          <ixx>0.00031</ixx>
+          <iyy>0.00031</iyy>
+          <izz>0.00022</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <collision name="lidar_collision">
+        <pose>0 0 -0.033 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.055</radius>
+            <length>0.09</length>
+          </cylinder>
+        </geometry>
+      </collision>
+
+      <visual name="lidar_base_visual">
+        <pose>0 0 -0.053 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.058</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.035 0.055 0.075 1</ambient>
+          <diffuse>0.055 0.085 0.11 1</diffuse>
+          <specular>0.5 0.65 0.8 1</specular>
+        </material>
+      </visual>
+
+      <visual name="lidar_head_visual">
+        <pose>0 0 -0.010 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.047</radius>
+            <length>0.036</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.03 0.32 0.42 1</ambient>
+          <diffuse>0.04 0.58 0.72 1</diffuse>
+          <specular>0.7 0.9 1 1</specular>
+        </material>
+      </visual>
+
+      <sensor name="lidar_3d" type="gpu_lidar">
+        <gz_frame_id>lidar_link</gz_frame_id>
+        <pose>0 0 0 0 0 0</pose>
+        <topic>/lidar_3d</topic>
+        <update_rate>10</update_rate>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>360</samples>
+              <resolution>1</resolution>
+              <min_angle>-3.14159265</min_angle>
+              <max_angle>3.14159265</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>16</samples>
+              <resolution>1</resolution>
+              <min_angle>-0.261799</min_angle>
+              <max_angle>0.261799</max_angle>
+            </vertical>
+          </scan>
+          <range>
+            <min>0.40</min>
+            <max>25.0</max>
+            <resolution>0.01</resolution>
+          </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.01</stddev>
+          </noise>
+        </ray>
+        <always_on>true</always_on>
+        <visualize>false</visualize>
+      </sensor>
+    </link>
+
+    <joint name="lidar_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>lidar_link</child>
+    </joint>
+  </model>
+</sdf>

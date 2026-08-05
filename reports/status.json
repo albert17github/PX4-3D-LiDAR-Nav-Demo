@@ -1,31 +1,27 @@
 {
-  "updated_at": "2026-08-05T15:43:55+08:00",
+  "updated_at": "2026-08-05T18:41:00+08:00",
   "state": "completed",
-  "phase": "DLIO position、body velocity 与 yaw 已统一进入 PX4 external odometry 融合；同一估计器连续四次飞行、四份 ULog、Gazebo 真值、自动降落、参数恢复与清理全部 PASS",
-  "summary": "本轮没有更换 A* 或飞控算法。修复了 PX4 只融合 DLIO 水平位置、却由独立磁航向重置旋转 external-vision 坐标的问题；4/4 连续任务到达，最大目标半径 10.296 m，飞行内 heading/quaternion reset 增量为 0，固定 frame 真值位置残差最大 0.128 m。",
+  "phase": "项目内自包含运行时、正确 SE(2) 几何合同和两次独立 A→B 实际飞行全部 PASS；当前已 clean stop",
+  "summary": "默认启动不再依赖兄弟项目。车辆保留 0.55 rad 非零初始航向，cyan_pillar 经 world-to-map 变换后严格位于 map=(3.5,3.5) 的 A→B 中点；两次路径中心距 2.961/2.927 m，B 误差 0.024/0.037 m，均自动降落。",
   "active_run": null,
   "progress": 100,
   "steps": [
-    {"name": "Version · Initial", "state": "done", "detail": "初始实现已冻结为 commit 1f535b2 与 tag v0.1.0-initial，并推送到 GitHub private repository"},
-    {"name": "Diagnosis · Frame/Yaw", "state": "done", "detail": "确认旧 EKF2_EV_CTRL=1 只融合水平位置；独立 yaw reset 会按距离放大为 LOCAL_FRD 外部位置跳变，规划器不是根因"},
-    {"name": "Estimator · LIO Authority", "state": "done", "detail": "EKF2_EV_CTRL=13 融合 position+velocity+yaw；EKF2_MAG_TYPE=6 仅用于上电初始化，飞行中不融合磁航向"},
-    {"name": "Startup · Reboot Safe", "state": "done", "detail": "启动前 PX4 shell 先应用 boot profile；运行前 readback 参数和 cs_ev_pos/vel/yaw flags，异常退出后的下一次启动可自修复"},
-    {"name": "Mission · Takeoff Sequence", "state": "done", "detail": "垂直起飞保持当前 yaw，到达高度后只旋转一次；slow telemetry 5.0 s，关键 external odometry watchdog 仍为 0.5 s"},
-    {"name": "Flight · Consecutive", "state": "done", "detail": "同一 PX4/EKF2/DLIO 实例 4/4 到达并自动降落；yaw 覆盖 +135°、-135°、0°、180°，最大目标半径 10.296 m"},
-    {"name": "ULog · Estimator", "state": "done", "detail": "4 个闭合 ULog：EV pos/vel/yaw 持续融合，无 rejection、yaw fault、failsafe、dropout 或飞行内 heading/quaternion reset"},
-    {"name": "Truth · Fixed Frame", "state": "done", "detail": "一个固定 SE(2) 对齐全部四次飞行；位置残差 mean/p95/max 0.053/0.110/0.128 m，yaw 0.60/1.78/3.04 deg"},
-    {"name": "Shutdown · Restore", "state": "done", "detail": "landed/disarmed 后恢复 baseline boot 参数并保存；项目与基线进程组和活动标记清理完成"}
+    {"name": "Runtime · Project Owned", "state": "done", "detail": "setup 在当前 checkout 的 runtime 内下载、构建并核验固定 PX4、DLIO、MAVROS、ROS/Gazebo、OctoMap 与 MRS"},
+    {"name": "Concurrency · MAVROS", "state": "done", "detail": "固定 MAVROS 2.14.0 应用 vehicles 与 router address 两组上游锁修复，二进制哈希进入 runtime lock"},
+    {"name": "Geometry · SE(2)", "state": "done", "detail": "配置与 SDF 自动核对；0.55 rad 初始航向下圆柱严格映射到 map=(3.5,3.5)，真正位于 A→B 中线"},
+    {"name": "Startup · Bounded Discovery", "state": "done", "detail": "逐组件 readiness 保留；MRS container 必须显式 ready，component load 使用 10 s discovery 与最多 3 次有界重试"},
+    {"name": "Flight · Independent Run 01", "state": "done", "detail": "12.886 m 路径，cross-track 3.111 m，中心距 2.961 m，B 误差 0.024 m，AUTO.LAND"},
+    {"name": "Flight · Independent Run 02", "state": "done", "detail": "12.724 m 路径，cross-track 3.111 m，中心距 2.927 m，B 误差 0.037 m，AUTO.LAND"},
+    {"name": "Evidence · Shutdown", "state": "done", "detail": "两轮截图、视频、地图、JSON 和 SHA-256 全通过；受管进程与活动标记均为 0"}
   ],
   "evidence": [
-    {"name": "四次飞行最终桌面", "detail": "Gazebo 与 RViz 同屏，连续任务完成、在线 LiDAR/OctoMap、已落地", "href": "../runs/20260805-151557-Otlbug/evidence/final-desktop.png"},
-    {"name": "ULog 与真值汇总", "detail": "4 个 ULog 合同、fusion flags、reset counters、failsafe 与统一 SE(2) 真值残差", "href": "../runs/20260805-151557-Otlbug/evidence/lio-yaw-ulog-summary.json"},
-    {"name": "连续任务 001", "detail": "[7.01,-0.04] 到 [7,7]，+135 deg，路径 7.730 m，终点误差 0.051 m", "href": "../runs/20260805-151557-Otlbug/evidence/mission-result-001.json"},
-    {"name": "连续任务 002", "detail": "[7.02,6.96] 到 [7,3]，-135 deg，路径 4.045 m，终点误差 0.045 m", "href": "../runs/20260805-151557-Otlbug/evidence/mission-result-002.json"},
-    {"name": "连续任务 003", "detail": "[7.01,3.03] 到 [9,3]，0 deg，路径 2.183 m，终点误差 0.028 m", "href": "../runs/20260805-151557-Otlbug/evidence/mission-result-003.json"},
-    {"name": "连续任务 004", "detail": "[9.01,3.00] 到 [9,5]，180 deg，路径 2.228 m，终点误差 0.045 m", "href": "../runs/20260805-151557-Otlbug/evidence/mission-result-004.json"},
-    {"name": "完整 RViz 视频", "detail": "1345.250 s H.264，记录在线地图、连续目标、规划路径、执行与落地", "href": "../runs/20260805-151557-Otlbug/evidence/rviz-ab-demo.mp4"},
-    {"name": "PX4 飞行参数 readback", "detail": "EKF2_EV_CTRL=13、EKF2_MAG_TYPE=6 及 external odometry 噪声参数", "href": "../runs/20260805-151557-Otlbug/evidence/px4-lio-yaw-runtime-readback.txt"},
-    {"name": "PX4 参数恢复 readback", "detail": "仅在 landed/disarmed 后恢复 baseline boot 值", "href": "../runs/20260805-151557-Otlbug/evidence/px4-lio-yaw-restore-readback.txt"},
-    {"name": "证据 SHA-256", "detail": "截图、视频、地图、四个任务 JSON、readback 与汇总逐项校验", "href": "../runs/20260805-151557-Otlbug/evidence/sha256.txt"}
+    {"name": "正式 run 01", "detail": "9 点完整路径、正确几何指标、全部航点与自动降落", "href": "../runs/20260805-182916-btMc4A/evidence/mission-result.json"},
+    {"name": "正式 run 01 桌面", "detail": "Gazebo、RViz、实时 LiDAR 与在线 OctoMap 同屏", "href": "../runs/20260805-182916-btMc4A/evidence/gazebo-rviz-desktop.png"},
+    {"name": "正式 run 01 哈希", "detail": "本轮全部 evidence 逐项校验", "href": "../runs/20260805-182916-btMc4A/evidence/sha256.txt"},
+    {"name": "正式 run 02", "detail": "独立冷启动后的第二条完整路径、全部航点与自动降落", "href": "../runs/20260805-183516-xIDcJr/evidence/mission-result.json"},
+    {"name": "正式 run 02 RViz", "detail": "Global、LiDAR、OctoMap 状态 OK，路径与最终位姿可见", "href": "../runs/20260805-183516-xIDcJr/evidence/rviz-final.png"},
+    {"name": "正式 run 02 视频", "detail": "95.375 s H.264，在线地图、路径执行与落地", "href": "../runs/20260805-183516-xIDcJr/evidence/rviz-ab-demo.mp4"},
+    {"name": "正式 run 02 哈希", "detail": "本轮全部 evidence 逐项校验", "href": "../runs/20260805-183516-xIDcJr/evidence/sha256.txt"},
+    {"name": "LIO yaw 四次连续任务", "detail": "历史 4-FLIGHT ULog 与 Gazebo 真值证据仍保留", "href": "../runs/20260805-151557-Otlbug/evidence/lio-yaw-ulog-summary.json"}
   ]
 }

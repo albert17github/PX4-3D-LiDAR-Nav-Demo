@@ -45,6 +45,8 @@ SETPOINT_TOPIC = "/mavros/setpoint_position/local"
 # independent 0.5 s odometry watchdog that guards flight-control feedback.
 SLOW_TELEMETRY_TIMEOUT_S = 5.0
 ODOMETRY_TIMEOUT_S = 0.5
+WAYPOINT_MIN_SETTLE_TIMEOUT_S = 10.0
+WAYPOINT_SETTLE_MARGIN_S = 8.0
 
 
 class MissionError(RuntimeError):
@@ -98,14 +100,53 @@ def finite_xyz(values: Any, name: str) -> XYZ:
     return XYZ(*parsed)
 
 
+def finite_tuple(values: Any, name: str, length: int) -> tuple[float, ...]:
+    if not isinstance(values, list) or len(values) != length:
+        raise MissionError(f"{name} must contain {length} numbers")
+    parsed = tuple(float(value) for value in values)
+    if not all(math.isfinite(value) for value in parsed):
+        raise MissionError(f"{name} contains a non-finite value")
+    return parsed
+
+
+def world_xy_to_map_xy(
+    world_xy: tuple[float, float],
+    map_origin_world_xy_yaw: tuple[float, float, float],
+) -> tuple[float, float]:
+    """Express a Gazebo-world point in DLIO's initial-heading local map."""
+    origin_x, origin_y, origin_yaw = map_origin_world_xy_yaw
+    dx = world_xy[0] - origin_x
+    dy = world_xy[1] - origin_y
+    cos_yaw = math.cos(origin_yaw)
+    sin_yaw = math.sin(origin_yaw)
+    return (
+        cos_yaw * dx + sin_yaw * dy,
+        -sin_yaw * dx + cos_yaw * dy,
+    )
+
+
 def load_config(path: Path) -> DemoConfig:
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
         raise MissionError("demo config is not a mapping")
-    obstacle = raw.get("expected_obstacle_center_xy")
-    if not isinstance(obstacle, list) or len(obstacle) != 2:
-        raise MissionError("expected_obstacle_center_xy must contain two numbers")
-    obstacle_xy = (float(obstacle[0]), float(obstacle[1]))
+    map_origin_world_xy_yaw = finite_tuple(
+        raw.get("simulation_map_origin_world_xy_yaw_rad"),
+        "simulation_map_origin_world_xy_yaw_rad",
+        3,
+    )
+    obstacle_world_xy = finite_tuple(
+        raw.get("expected_obstacle_center_world_xy"),
+        "expected_obstacle_center_world_xy",
+        2,
+    )
+    obstacle_xy = world_xy_to_map_xy(
+        (obstacle_world_xy[0], obstacle_world_xy[1]),
+        (
+            map_origin_world_xy_yaw[0],
+            map_origin_world_xy_yaw[1],
+            map_origin_world_xy_yaw[2],
+        ),
+    )
     numeric = {
         key: float(raw[key])
         for key in (
@@ -256,6 +297,8 @@ def validate_path(
         "max_cross_track_m": max_cross_track,
         "minimum_obstacle_center_distance_m": obstacle_distance,
         "required_obstacle_center_distance_m": required,
+        "obstacle_center_map_x_m": config.obstacle_xy[0],
+        "obstacle_center_map_y_m": config.obstacle_xy[1],
     }
 
 
@@ -472,11 +515,20 @@ class ABMission(Node):
             next_tick += period
             time.sleep(max(0.0, next_tick - time.monotonic()))
 
-    def wait_until(self, predicate: Callable[[], bool], timeout_s: float, name: str) -> None:
+    def wait_until(
+        self,
+        predicate: Callable[[], bool],
+        timeout_s: float,
+        name: str,
+        *,
+        check_flight: bool = False,
+    ) -> None:
         deadline = time.monotonic() + timeout_s
         stable_since: float | None = None
         while time.monotonic() < deadline:
             self.spin_once()
+            if check_flight:
+                self.flight_watchdog()
             if predicate():
                 stable_since = stable_since or time.monotonic()
                 if time.monotonic() - stable_since >= 0.5:
@@ -764,8 +816,13 @@ class ABMission(Node):
                 and abs(normalize_angle(desired_yaw - self.vehicle_yaw))
                 <= math.radians(10.0)
             ),
-            max(5.0, distance / self.config.cruise_speed_mps + 3.0),
+            max(
+                WAYPOINT_MIN_SETTLE_TIMEOUT_S,
+                distance / self.config.cruise_speed_mps
+                + WAYPOINT_SETTLE_MARGIN_S,
+            ),
             label,
+            check_flight=True,
         )
         self.event(
             label,
@@ -930,6 +987,15 @@ class ABMission(Node):
 
 
 def self_test() -> int:
+    transformed_obstacle = world_xy_to_map_xy(
+        (-6.845569474049038, -1.186758871534423),
+        (-8.0, -6.0, 0.55),
+    )
+    if not (
+        math.isclose(transformed_obstacle[0], 3.5, abs_tol=1e-9)
+        and math.isclose(transformed_obstacle[1], 3.5, abs_tol=1e-9)
+    ):
+        raise SystemExit("world-to-map transform self-test failed")
     config = DemoConfig(
         frame_id="map",
         start=XYZ(0.0, 0.0, 2.2),
@@ -999,6 +1065,7 @@ def self_test() -> int:
                 "interactive_retry_metrics": retry_metrics,
                 "interactive_yaw_rad": yaw_90,
                 "shortest_turn_rad": shortest_turn,
+                "transformed_obstacle_xy": transformed_obstacle,
             },
             sort_keys=True,
         )

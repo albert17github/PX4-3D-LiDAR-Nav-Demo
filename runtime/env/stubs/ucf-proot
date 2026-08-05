@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+
+# dash's built-in `test -w` returns a false negative under PRoot's fake-root
+# mode. Debian's ucf/ucfr then abort even though their files are writable.
+# Give each package-helper invocation a fresh state directory; the real helper
+# still installs the requested conffile, while only its registry is ephemeral.
+tool="$(basename "$0")"
+case "$tool" in
+  ucf|ucfr) ;;
+  *)
+    echo "Unsupported ucf compatibility entrypoint: $tool" >&2
+    exit 2
+    ;;
+esac
+
+UCF_STATE_DIR="$(mktemp -d "/tmp/${tool}-proot.XXXXXX")"
+export UCF_STATE_DIR
+
+exec "/project/env/rootfs/usr/bin/$tool" "$@"

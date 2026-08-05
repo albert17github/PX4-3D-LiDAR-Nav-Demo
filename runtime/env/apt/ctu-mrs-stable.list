@@ -1,0 +1,3 @@
+# The installer verifies InRelease with the pinned CTU MRS key before apt runs.
+# trusted=yes is scoped to this source solely for PRoot's signed-by limitation.
+deb [trusted=yes] https://ctu-mrs.github.io/ppa2-stable ./

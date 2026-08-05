@@ -25,7 +25,7 @@ if [[ -f "$run_dir/base-run.txt" ]]; then
   fi
 fi
 
-# Restore the shared baseline's next-boot parameter contract only when live
+# Restore this project's next-boot parameter contract only when live
 # telemetry proves that changing estimator parameters is safe.  If shutdown is
 # requested in flight, leave the runtime values alone; the next project start
 # repairs them through its PX4 minimal-shell preflight before launching Gazebo.

@@ -4,12 +4,28 @@
 
 在 Ubuntu 24 桌面中实时显示 Gazebo 和 RViz，让 PX4 SITL 无人机使用三维 LiDAR + IMU 完成定位与 OctoMap 建图，调用开源 MRS 三维 A* 规划器获得固定 A→B 或 RViz 交互目标路径，再通过 MAVROS OFFBOARD 位置航点实际飞完整条路径并自动降落。交互模式作为后续演示技术底座，应在同一会话中支持多次选点，同时保持自写代码只承担薄编排和安全连接层。
 
+## Self-contained runtime + corrected geometry — 2-RUN PASS (2026-08-05)
+
+- 项目默认运行时已从兄弟项目迁入本 checkout 的 `runtime/`。`./setup.sh --install-host-deps` 是普通用户首次入口，`./setup.sh --verify-only` 核验 source commit、补丁、动态库闭包、Python 自测、apt manifest 与仿真几何合同；默认启动链不读取 `/home/albert/PX4-LiDAR-SLAM-Sim`、`RVPX4` 或其他兄弟目录。
+- Git 只跟踪安装配方、版本锁、补丁、模型、world 与脚本；约 `14 GiB` 的 rootfs、源码 checkout、build、overlay、日志和 run 都由 setup 生成并在 `.gitignore` 排除。`runtime/config/versions.env` 固定 Ubuntu Noble WSL rootfs URL/SHA、PRoot SHA、PX4 `v1.17.0` commit `d6f12ad1`、DLIO commit `c8acc371`、MAVROS `2.14.0` commit `c655e634` 与所有补丁 SHA。
+- 迁移不复制旧 run、报告或 ULog；当前 runtime 中三套源码 checkout 都有官方 origin、无 Git alternates，也没有指向兄弟项目的 symlink。`--seed-from` 只保留为显式的本机迁移加速选项，普通用户不需要。
+- MAVROS 早期偶发 `double free or corruption` 的根因位于固定 `2.14.0` 中两个上游已修复的并发区：原 vehicles map 锁补丁之外，新增按上游 `bf464a2b`、`65cec447`、`07944251`、`d07483ee` 提取的 router `remote_addrs/stale_addrs` 锁补丁。修补后的 `libmavros.so`/`libmavros_plugins.so` 哈希进入 runtime lock，连续正式 run 未再出现崩溃。
+- 原任务还存在一个独立坐标契约错误：world 中车辆初始 yaw=`0.55 rad`，历史配置却把未旋转 world 差值 `(3.5,3.5)` 直接冒充 DLIO `map` 坐标。两轮当前 ULog 用 Gazebo ground truth 拟合得到 `map→world` 旋转 `31.51°`，与初始 yaw 一致。只改校验坐标会让圆柱离开 A→B 中线，因此最终保留非零初始航向，并把 `cyan_pillar` world 位姿移到 `(-6.845569,-1.186759)`，使其经 SE(2) 变换后严格为 `map=(3.5,3.5)`、真正位于 A→B 中点。
+- `scripts/check_simulation_contract.py` 会读取 `config/demo.yaml` 与 `runtime/worlds/lidar_slam_course.sdf`，自动核对车辆/圆柱名称、world 位姿、半径和换算后的 map 坐标；它已进入 `verify-runtime.sh`。安全阈值仍是半径 `0.65 m` + 净距 `0.70 m` = 中心距 `1.35 m`，没有调低。
+- 修正场景后的两个独立正式 run 均完整 PASS：`runs/20260805-182916-btMc4A` 路径 `12.88595 m`、cross-track `3.11127 m`、中心距 `2.96055 m`、B 误差 `0.02440 m`；`runs/20260805-183516-xIDcJr` 路径 `12.72449 m`、cross-track `3.11127 m`、中心距 `2.92710 m`、B 误差 `0.03733 m`。两轮均 visible Gazebo + RViz、在线 OctoMap、完整 MRS path、OFFBOARD、arm、全部 waypoint、AUTO.LAND、landed/disarmed、截图/视频/地图 SHA-256 全通过，clean stop 后受管进程与两层 active marker 均为 0。
+- 两轮冷启动总计 `235/237 s`，底层 readiness `194/198 s`；相对此前已优化的 `287 s` 再缩短约 `17%..18%`。另修复 MRS component discovery 的瞬时竞态：容器必须显式 ready，load 使用 `10 s` discovery 并最多重试 3 次；一次未解锁失败 run `20260805-182343-iauTdk` 原样保留，随后两轮均首次加载成功。
+- `src/ab_mission.py` 的 waypoint settle timeout 现在至少 `10 s`，并按航段飞行时间加 `8 s` 余量；整个 settle 期间仍执行 `0.5 s` odometry 与 OFFBOARD watchdog。这修复了到达容差边缘时刚进入稳定窗口便超时的问题，不是放松飞行状态门。
+- 版本路线：`v0.1.0-initial` → `v0.2.0-lio-yaw` → `v0.3.0-self-contained`。GitHub 当前仍为 private，顶层也尚未由所有者选择 LICENSE；公开可见性和许可证均需用户明确决定。
+- 未删除任何旧项目或历史证据。被忽略的失败复制目录 `runtime/.setup/rootfs.partial-20260805-1655` 约 `1.4 GiB` 也仍保留，只有用户确认准确路径后才能删除。
+
+以下章节为本轮自包含改造之前的历史记录；涉及“共享基线”或旧 `(3.5,3.5)` 计算的描述用于追溯，不再代表当前启动链与几何口径。
+
 ## LIO position/velocity/yaw authority — 4-FLIGHT PASS (2026-08-05)
 
 - 长距离、多次飞行后“箭头乱、飞机乱飞”的主因不是 A*：旧配置 `EKF2_EV_CTRL=1` 只融合 DLIO 水平位置，PX4 yaw 仍由磁航向/IMU 独立维护；PX4 heading reset 会把 `LOCAL_FRD` 外部位置重新旋转。历史异常中位置跳变量与 `2 r sin(Δyaw/2)` 一致，且 A* 在发散前未被调用。
 - 当前修复不更换 SLAM、规划器或飞控算法。`config/px4-lio-yaw.params` 定义三个生命周期：启动兼容态 `EKF2_EV_CTRL=1, EKF2_MAG_TYPE=6`；DLIO 就绪后的飞行态 `EKF2_EV_CTRL=13`（horizontal position + body velocity + yaw）；安全停机恢复态 `EKF2_EV_CTRL=1, EKF2_MAG_TYPE=0`。`MAG_TYPE=6` 只用于上电初始化，飞行中磁航向不再与 LIO yaw 竞争。
-- `scripts/start.sh` 会先用 PX4 `PX4_SIM_MODEL=shell` 最小启动修复持久参数，即使虚拟机异常退出、上次来不及恢复，也能重新进入共享基线的启动合同。基线 READY 且已证明 landed/disarmed 后才切换到 runtime profile；只有实时读到 `cs_ev_pos/cs_ev_vel/cs_ev_yaw=True`、`cs_mag_hdg/cs_mag_3d=False`、`cs_ev_yaw_fault=False` 才继续启动 planner/RViz。
-- `scripts/stop.sh` 只在 MAVROS 同时证明 `armed=false`、`landed_state=1` 时恢复共享基线参数；本轮 readback 为 `EV_CTRL 13→1`、`MAG_TYPE 6→0`。若落地条件不能证明则跳过写参，由下一次项目启动的最小 shell 修复，绝不在飞行中切换估计器。
+- `scripts/start.sh` 会先用 PX4 `PX4_SIM_MODEL=shell` 最小启动修复持久参数，即使虚拟机异常退出、上次来不及恢复，也能重新进入启动合同。运行时 READY 且已证明 landed/disarmed 后才切换到 flight profile；只有实时读到 `cs_ev_pos/cs_ev_vel/cs_ev_yaw=True`、`cs_mag_hdg/cs_mag_3d=False`、`cs_ev_yaw_fault=False` 才继续启动 planner/RViz。
+- `scripts/stop.sh` 只在 MAVROS 同时证明 `armed=false`、`landed_state=1` 时恢复下一次启动参数；本轮 readback 为 `EV_CTRL 13→1`、`MAG_TYPE 6→0`。若落地条件不能证明则跳过写参，由下一次项目启动的最小 shell 修复，绝不在飞行中切换估计器。
 - MAVROS `ODOMETRY` 的 `MAV_FRAME_LOCAL_FRD` 是 PX4 对本地外部里程计的官方帧语义；此时 `cs_yaw_align=False` 是 EKF2 源码的预期状态，不能为了让标志变 True 而伪装成 `LOCAL_NED`。真实系统无磁航向时，应在实际启动编排中让 LIO yaw 在飞行前可用；有磁航向时可像本仿真一样只用于初始 `map→odom` 对齐，飞行中仍保持单一 LIO yaw 权限。
 - `src/ab_mission.py` 现在保持当前航向垂直起飞，到 `2.2 m` 后才以不超过 `45°/s` 原地转到任务 yaw；每个 waypoint 同时检查位置和 `10°` yaw 误差。满负载实测 `/mavros/state` 仅 `0.55..1 Hz`，低频状态门改为 `5 s` 以容忍一次漏报；真正的控制反馈 `/mavros/local_position/odom` watchdog 仍保持 `0.5 s`。
 - 正式验证 demo run `runs/20260805-151557-Otlbug`、base run `/home/albert/PX4-LiDAR-SLAM-Sim/runtime/runs/20260805-151611-RZ9WfJ` 已 clean stop。启动总计 `303 s`：参数准备 `8 s`、base readiness `262 s`、估计器/no-GCS `8 s`、planner `17 s`、RViz/recording `8 s`。

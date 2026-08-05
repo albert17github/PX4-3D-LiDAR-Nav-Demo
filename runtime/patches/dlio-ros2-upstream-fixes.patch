@@ -1,0 +1,366 @@
+diff --git a/include/dlio/odom.h b/include/dlio/odom.h
+index 51641b3..74a314d 100755
+--- a/include/dlio/odom.h
++++ b/include/dlio/odom.h
+@@ -170,7 +170,6 @@ private:
+   std::string imu_frame;
+ 
+   // Preprocessing
+-  pcl::CropBox<PointType> crop;
+   pcl::VoxelGrid<PointType> voxel;
+ 
+   // Point Clouds
+@@ -310,6 +309,7 @@ private:
+   // Parameters
+   std::string version_;
+   int num_threads_;
++  bool verbose;
+ 
+   bool deskew_;
+ 
+diff --git a/src/dlio/odom.cc b/src/dlio/odom.cc
+index 4e9f190..440373b 100755
+--- a/src/dlio/odom.cc
++++ b/src/dlio/odom.cc
+@@ -126,10 +126,6 @@ dlio::OdomNode::OdomNode() : Node("dlio_odom_node") {
+ 
+   pcl::console::setVerbosityLevel(pcl::console::L_ERROR);
+ 
+-  this->crop.setNegative(true);
+-  this->crop.setMin(Eigen::Vector4f(-this->crop_size_, -this->crop_size_, -this->crop_size_, 1.0));
+-  this->crop.setMax(Eigen::Vector4f(this->crop_size_, this->crop_size_, this->crop_size_, 1.0));
+-
+   this->voxel.setLeafSize(this->vf_res_, this->vf_res_, this->vf_res_);
+ 
+   this->metrics.spaciousness.push_back(0.);
+@@ -181,6 +177,7 @@ void dlio::OdomNode::getParams() {
+ 
+   // Version
+   dlio::declare_param(this, "version", this->version_, "0.0.0");
++  dlio::declare_param(this, "verbose", this->verbose, true);
+ 
+   // Frames
+   dlio::declare_param(this, "frames/odom", this->odom_frame, "odom");
+@@ -308,6 +305,10 @@ void dlio::OdomNode::getParams() {
+ 
+ void dlio::OdomNode::start() {
+ 
++  if (!this->verbose) {
++    return;
++  }
++
+   printf("\033[2J\033[1;1H");
+   std::cout << std::endl
+             << "+-------------------------------------------------------------------+" << std::endl;
+@@ -333,9 +334,9 @@ void dlio::OdomNode::publishPose() {
+   this->odom_ros.pose.pose.orientation.y = this->state.q.y();
+   this->odom_ros.pose.pose.orientation.z = this->state.q.z();
+ 
+-  this->odom_ros.twist.twist.linear.x = this->state.v.lin.w[0];
+-  this->odom_ros.twist.twist.linear.y = this->state.v.lin.w[1];
+-  this->odom_ros.twist.twist.linear.z = this->state.v.lin.w[2];
++  this->odom_ros.twist.twist.linear.x = this->state.v.lin.b[0];
++  this->odom_ros.twist.twist.linear.y = this->state.v.lin.b[1];
++  this->odom_ros.twist.twist.linear.z = this->state.v.lin.b[2];
+ 
+   this->odom_ros.twist.twist.angular.x = this->state.v.ang.b[0];
+   this->odom_ros.twist.twist.angular.y = this->state.v.ang.b[1];
+@@ -494,40 +495,90 @@ void dlio::OdomNode::publishKeyframe(std::pair<std::pair<Eigen::Vector3f, Eigen:
+ void dlio::OdomNode::getScanFromROS(const sensor_msgs::msg::PointCloud2::SharedPtr& pc) {
+ 
+   pcl::PointCloud<PointType>::Ptr original_scan_ = std::make_shared<pcl::PointCloud<PointType>>();
+-  pcl::fromROSMsg(*pc, *original_scan_);
+-
+-  // Remove NaNs
+-  std::vector<int> idx;
+-  original_scan_->is_dense = false;
+-  pcl::removeNaNFromPointCloud(*original_scan_, *original_scan_, idx);
++  const sensor_msgs::msg::PointCloud2 scan_msg = *pc;
+ 
+-  // Crop Box Filter
+-  this->crop.setInputCloud(original_scan_);
+-  this->crop.filter(*original_scan_);
+-
+-  // automatically detect sensor type
++  // Automatically detect whether the input carries one of DLIO's supported
++  // per-point time fields before invoking PCL conversion/filtering.
+   this->sensor = dlio::SensorType::UNKNOWN;
+-  for (auto &field : pc->fields) {
++  bool has_timestamp = false;
++  for (const auto &field : scan_msg.fields) {
+     if (field.name == "t") {
+       this->sensor = dlio::SensorType::OUSTER;
+       break;
+     } else if (field.name == "time") {
+       this->sensor = dlio::SensorType::VELODYNE;
+       break;
+-    } else if (field.name == "timestamp" && original_scan_->points[0].timestamp < 1e14) {
+-      this->sensor = dlio::SensorType::HESAI;
+-      break;
+-    } else if (field.name == "timestamp" && original_scan_->points[0].timestamp > 1e14) {
+-      this->sensor = dlio::SensorType::LIVOX;
++    } else if (field.name == "timestamp") {
++      has_timestamp = true;
+       break;
+     }
+   }
+ 
++  if (this->sensor == dlio::SensorType::UNKNOWN && !has_timestamp) {
++    // Gazebo's standard cloud has x/y/z/intensity/ring but no per-point firing
++    // time. Use PCL's pre-defined XYZI type for conversion and filtering, then
++    // copy common fields into DLIO's internal type. This avoids asking PCL to
++    // populate the internal overlapping t/time/timestamp union for a cloud that
++    // has none of those fields.
++    auto converted_scan = std::make_shared<pcl::PointCloud<pcl::PointXYZI>>();
++    pcl::fromROSMsg(scan_msg, *converted_scan);
++
++    // Avoid generic PCL filters and field copying on this padded, organized
++    // Gazebo cloud. DLIO's custom type registers three overlapping time union
++    // members, which is unsafe with those generic field/filter templates.
++    // One explicit pass removes non-finite returns and the vehicle crop box,
++    // copies only fields that exist, and initializes the absent time value.
++    original_scan_->header = converted_scan->header;
++    original_scan_->sensor_origin_ = converted_scan->sensor_origin_;
++    original_scan_->sensor_orientation_ = converted_scan->sensor_orientation_;
++    original_scan_->is_dense = true;
++    original_scan_->height = 1;
++    original_scan_->points.reserve(converted_scan->points.size());
++    for (const auto &source : converted_scan->points) {
++      if (!std::isfinite(source.x) || !std::isfinite(source.y) || !std::isfinite(source.z)) {
++        continue;
++      }
++      if (std::abs(source.x) <= this->crop_size_ &&
++          std::abs(source.y) <= this->crop_size_ &&
++          std::abs(source.z) <= this->crop_size_) {
++        continue;
++      }
++      PointType target;
++      target.x = source.x;
++      target.y = source.y;
++      target.z = source.z;
++      target.intensity = source.intensity;
++      target.t = 0U;
++      original_scan_->points.push_back(target);
++    }
++    original_scan_->width = original_scan_->points.size();
++  } else {
++    std::vector<int> idx;
++    auto converted_scan = std::make_shared<pcl::PointCloud<PointType>>();
++    pcl::fromROSMsg(scan_msg, *converted_scan);
++    converted_scan->is_dense = false;
++
++    auto finite_scan = std::make_shared<pcl::PointCloud<PointType>>();
++    pcl::removeNaNFromPointCloud(*converted_scan, *finite_scan, idx);
++
++    pcl::CropBox<PointType> crop;
++    crop.setNegative(true);
++    crop.setMin(Eigen::Vector4f(-this->crop_size_, -this->crop_size_, -this->crop_size_, 1.0));
++    crop.setMax(Eigen::Vector4f(this->crop_size_, this->crop_size_, this->crop_size_, 1.0));
++    crop.setInputCloud(finite_scan);
++    crop.filter(*original_scan_);
++
++    if (has_timestamp && !original_scan_->empty()) {
++      this->sensor = original_scan_->front().timestamp < 1e14
++        ? dlio::SensorType::HESAI : dlio::SensorType::LIVOX;
++    }
++  }
++
+   if (this->sensor == dlio::SensorType::UNKNOWN) {
+     this->deskew_ = false;
+   }
+ 
+-  this->scan_header_stamp = pc->header.stamp;
++  this->scan_header_stamp = scan_msg.header.stamp;
+   this->original_scan = original_scan_;
+ 
+ }
+@@ -550,8 +601,11 @@ void dlio::OdomNode::preprocessPoints() {
+     // don't process scans until IMU data is present
+     if (!this->first_valid_scan) {
+ 
+-      if (this->imu_buffer.empty() || this->scan_stamp <= this->imu_buffer.back().stamp) {
+-        return;
++      {
++        std::lock_guard<std::mutex> lock(this->mtx_imu);
++        if (this->imu_buffer.empty() || this->scan_stamp <= this->imu_buffer.back().stamp) {
++          return;
++        }
+       }
+ 
+       this->first_valid_scan = true;
+@@ -581,8 +635,12 @@ void dlio::OdomNode::preprocessPoints() {
+ 
+   // Voxel Grid Filter
+   if (this->vf_use_) {
+-    pcl::PointCloud<PointType>::Ptr current_scan_ = std::make_shared<pcl::PointCloud<PointType>>(*this->deskewed_scan);
+-    this->voxel.setInputCloud(current_scan_);
++    // PCL filters do not guarantee that input and output may alias. The
++    // upstream in-place call corrupts the first source cloud and the damage is
++    // detected when NanoGICP releases it on the next scan. Keep the immutable
++    // deskewed cloud as input and write into a distinct output cloud.
++    pcl::PointCloud<PointType>::Ptr current_scan_ = std::make_shared<pcl::PointCloud<PointType>>();
++    this->voxel.setInputCloud(this->deskewed_scan);
+     this->voxel.filter(*current_scan_);
+     this->current_scan = current_scan_;
+   } else {
+@@ -674,8 +732,11 @@ void dlio::OdomNode::deskewPointcloud() {
+ 
+   // don't process scans until IMU data is present
+   if (!this->first_valid_scan) {
+-    if (this->imu_buffer.empty() || this->scan_stamp <= this->imu_buffer.back().stamp) {
+-      return;
++    {
++      std::lock_guard<std::mutex> lock(this->mtx_imu);
++      if (this->imu_buffer.empty() || this->scan_stamp <= this->imu_buffer.back().stamp) {
++        return;
++      }
+     }
+ 
+     this->first_valid_scan = true;
+@@ -762,13 +823,24 @@ void dlio::OdomNode::callbackPointCloud(const sensor_msgs::msg::PointCloud2::Sha
+ 
+   double then = this->now().seconds();
+ 
+-  if (this->first_scan_stamp == 0.) {
+-    this->first_scan_stamp = rclcpp::Time(pc->header.stamp).seconds();
+-  }
+-
+   // DLIO Initialization procedures (IMU calib, gravity align)
+   if (!this->dlio_initialized) {
+     this->initializeDLIO();
++    if (!this->dlio_initialized) {
++      // Point processing is not useful until calibration has committed the
++      // initial state.  In the ROS 2 multi-threaded executor, filtering scans
++      // concurrently with that state transition also exposes the upstream
++      // feature/ros2 heap race under burst input.
++      lock.lock();
++      this->main_loop_running = false;
++      lock.unlock();
++      this->submap_build_cv.notify_one();
++      return;
++    }
++  }
++
++  if (this->first_scan_stamp == 0.) {
++    this->first_scan_stamp = rclcpp::Time(pc->header.stamp).seconds();
+   }
+ 
+   // Convert incoming scan into DLIO format
+@@ -787,8 +859,7 @@ void dlio::OdomNode::callbackPointCloud(const sensor_msgs::msg::PointCloud2::Sha
+   }
+ 
+   // Compute Metrics
+-  this->metrics_thread = std::thread( &dlio::OdomNode::computeMetrics, this );
+-  this->metrics_thread.detach();
++  this->computeMetrics();
+ 
+   // Set Adaptive Parameters
+   if (this->adaptive_params_) {
+@@ -841,16 +912,16 @@ void dlio::OdomNode::callbackPointCloud(const sensor_msgs::msg::PointCloud2::Sha
+   } else {
+     published_cloud = this->deskewed_scan;
+   }
+-  this->publish_thread = std::thread( &dlio::OdomNode::publishToROS, this, published_cloud, this->T_corr );
+-  this->publish_thread.detach();
++  this->publishToROS(published_cloud, this->T_corr);
+ 
+   // Update some statistics
+   this->comp_times.push_back(this->now().seconds() - then);
+   this->gicp_hasConverged = this->gicp.hasConverged();
+ 
+   // Debug statements and publish custom DLIO message
+-  this->debug_thread = std::thread( &dlio::OdomNode::debug, this );
+-  this->debug_thread.detach();
++  if (this->verbose) {
++    this->debug();
++  }
+ 
+   this->geo.first_opt_done = true;
+ 
+@@ -965,6 +1036,7 @@ void dlio::OdomNode::callbackImu(const sensor_msgs::msg::Imu::SharedPtr imu_raw)
+       }
+ 
+       this->imu_calibrated = true;
++      this->prev_imu_stamp = imu_stamp_secs;
+ 
+     }
+ 
+@@ -1042,12 +1114,6 @@ bool dlio::OdomNode::imuMeasFromTimeRange(double start_time, double end_time,
+                                           boost::circular_buffer<ImuMeas>::reverse_iterator& begin_imu_it,
+                                           boost::circular_buffer<ImuMeas>::reverse_iterator& end_imu_it) {
+ 
+-  if (this->imu_buffer.empty() || this->imu_buffer.front().stamp < end_time) {
+-    // Wait for the latest IMU data
+-    std::unique_lock<decltype(this->mtx_imu)> lock(this->mtx_imu);
+-    this->cv_imu_stamp.wait(lock, [this, &end_time]{ return this->imu_buffer.front().stamp >= end_time; });
+-  }
+-
+   auto imu_it = this->imu_buffer.begin();
+ 
+   auto last_imu_it = imu_it;
+@@ -1085,9 +1151,18 @@ dlio::OdomNode::integrateImu(double start_time, Eigen::Quaternionf q_init, Eigen
+     return empty;
+   }
+ 
++  // The IMU callback writes this fixed-capacity buffer concurrently. Keep the
++  // buffer locked from readiness through iterator use so push_front cannot
++  // invalidate the range while it is being integrated.
++  std::unique_lock<std::mutex> imu_lock(this->mtx_imu);
++  const double end_time = sorted_timestamps.back();
++  this->cv_imu_stamp.wait(imu_lock, [this, end_time] {
++    return !this->imu_buffer.empty() && this->imu_buffer.front().stamp >= end_time;
++  });
++
+   boost::circular_buffer<ImuMeas>::reverse_iterator begin_imu_it;
+   boost::circular_buffer<ImuMeas>::reverse_iterator end_imu_it;
+-  if (this->imuMeasFromTimeRange(start_time, sorted_timestamps.back(), begin_imu_it, end_imu_it) == false) {
++  if (this->imuMeasFromTimeRange(start_time, end_time, begin_imu_it, end_imu_it) == false) {
+     // not enough IMU measurements, return empty vector
+     return empty;
+   }
+@@ -1422,7 +1497,7 @@ void dlio::OdomNode::computeSpaciousness() {
+   // compute range of points
+   std::vector<float> ds;
+ 
+-  for (int i = 0; i <= this->original_scan->points.size(); i++) {
++  for (int i = 0; i < this->original_scan->points.size(); i++) {
+     float d = std::sqrt(pow(this->original_scan->points[i].x, 2) +
+                         pow(this->original_scan->points[i].y, 2));
+     ds.push_back(d);
+@@ -1736,14 +1811,23 @@ void dlio::OdomNode::buildSubmap(State vehicle_state) {
+ 
+     for (auto k : this->submap_kf_idx_curr) {
+ 
+-      // create current submap cloud
++      // The LiDAR callback may append to both vectors while this async submap
++      // worker is running. Copy both shared pointers under the same lock so a
++      // vector reallocation cannot invalidate the normals element between the
++      // cloud and covariance reads.
++      pcl::PointCloud<PointType>::ConstPtr keyframe;
++      std::shared_ptr<const nano_gicp::CovarianceList> keyframe_normal;
+       lock.lock();
+-      *submap_cloud_ += *this->keyframes[k].second;
++      keyframe = this->keyframes.at(k).second;
++      keyframe_normal = this->keyframe_normals.at(k);
+       lock.unlock();
+ 
++      // create current submap cloud
++      *submap_cloud_ += *keyframe;
++
+       // grab corresponding submap cloud's normals
+       submap_normals_->insert( std::end(*submap_normals_),
+-          std::begin(*(this->keyframe_normals[k])), std::end(*(this->keyframe_normals[k])) );
++          std::begin(*keyframe_normal), std::end(*keyframe_normal) );
+     }
+ 
+     this->submap_cloud = submap_cloud_;
+@@ -1785,8 +1869,7 @@ void dlio::OdomNode::buildKeyframesAndSubmap(State vehicle_state) {
+     this->keyframes[i].second = transformed_keyframe;
+     this->keyframe_normals[i] = transformed_covariances;
+ 
+-    this->publish_keyframe_thread = std::thread( &dlio::OdomNode::publishKeyframe, this, this->keyframes[i], this->keyframe_timestamps[i] );
+-    this->publish_keyframe_thread.detach();
++    this->publishKeyframe(this->keyframes[i], this->keyframe_timestamps[i]);
+   }
+ 
+   lock.unlock();

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# systemd-tmpfiles triggers a known proot path assertion in this rootfs.
+# There is no booted systemd instance inside the project-local environment,
+# so package-maintainer tmpfiles operations are intentionally deferred.
+exit 0

@@ -6,15 +6,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 require_runtime
-startup_health_mode="${PX4_DEMO_STARTUP_HEALTH_MODE:-readiness}"
-case "$startup_health_mode" in
-  full|readiness)
-    ;;
-  *)
-    echo "PX4_DEMO_STARTUP_HEALTH_MODE must be full or readiness" >&2
-    exit 64
-    ;;
-esac
+startup_health_mode=readiness
+if [[ -n "${PX4_DEMO_STARTUP_HEALTH_MODE:-}" &&
+      "${PX4_DEMO_STARTUP_HEALTH_MODE}" != readiness ]]; then
+  echo "Only PX4_DEMO_STARTUP_HEALTH_MODE=readiness is supported by the self-contained mainline." >&2
+  exit 64
+fi
 for command in setsid Xephyr xdpyinfo xdotool python3 gnome-screenshot; do
   command -v "$command" >/dev/null || {
     echo "Missing command: $command" >&2
@@ -110,16 +107,11 @@ boot_profile_ready_epoch="$(date +%s)"
 boot_profile_seconds=$((boot_profile_ready_epoch - boot_profile_started_epoch))
 printf 'px4_lio_boot_profile=PASS\nstartup_px4_profile_seconds=%s\n' \
   "$boot_profile_seconds" >>"$run_dir/status"
-echo "      EKF2_MAG_TYPE=6 (initialization only); baseline boot contract restored"
+echo "      EKF2_MAG_TYPE=6 (initialization only); project boot contract restored"
 echo "      [timing] px4_profile=${boot_profile_seconds}s"
 
 echo "[2/6] Starting visible PX4 + Gazebo + LiDAR + DLIO + OctoMap stack..."
-if [[ "$startup_health_mode" == readiness ]]; then
-  echo "      Fast demo readiness mode is enabled; full 66-check startup audit is not repeated."
-  echo "      Use PX4_DEMO_STARTUP_HEALTH_MODE=full to restore the complete audit path."
-else
-  echo "      Full startup health audit is enabled; progress is shown below."
-fi
+echo "      Project-owned mainline readiness gates are enabled."
 base_started_epoch="$(date +%s)"
 base_active_before="$(cat "$STACK_ROOT/.runtime/active-run" 2>/dev/null || true)"
 set +e
@@ -214,8 +206,7 @@ grep -Fxq "startup_health_mode=$startup_health_mode" "$base_run/manifest.txt" ||
   echo "Base stack startup health mode does not match the requested mode" >&2
   exit 12
 }
-if [[ "$startup_health_mode" == readiness ]] && \
-   [[ ! -s "$base_run/evidence/startup-readiness-summary.txt" ]]; then
+if [[ ! -s "$base_run/evidence/startup-readiness-summary.txt" ]]; then
   echo "Base stack readiness summary is missing" >&2
   exit 12
 fi
@@ -298,9 +289,11 @@ setsid env \
 planner_pid=$!
 record_pid "$run_dir" planner "$planner_pid"
 
+planner_container_ready=0
 for _ in {1..30}; do
   if native_ros timeout 3s ros2 node list --no-daemon --spin-time 1 2>/dev/null | \
       grep -Fxq '/demo/planner_container'; then
+    planner_container_ready=1
     break
   fi
   sleep 0.5
@@ -309,18 +302,35 @@ kill -0 "$planner_pid" 2>/dev/null || {
   echo "Planner component container exited" >&2
   exit 12
 }
+((planner_container_ready == 1)) || {
+  echo "Planner component container was not discovered" >&2
+  exit 12
+}
 
-# shellcheck disable=SC2088  # '~/' is an intentional ROS private-name remap.
-native_ros timeout --signal=INT --kill-after=2s 20s \
-  ros2 component load --no-daemon --spin-time 3 \
-  /demo/planner_container \
-  mrs_octomap_planner mrs_octomap_planner::MinimalOctomapPlanner \
-  -n minimal_planner --node-namespace /demo \
-  -p config:="$DEMO_ROOT/config/planner.yaml" \
-  -p use_sim_time:=true \
-  -r '~/octomap_in:=/octomap_binary' \
-  -r 'get_path_in:=/demo/minimal_planner/get_path' \
-  >"$run_dir/logs/planner-load.log" 2>&1
+planner_load_log="$run_dir/logs/planner-load.log"
+planner_loaded=0
+for attempt in {1..3}; do
+  printf 'attempt=%s\n' "$attempt" >>"$planner_load_log"
+  # shellcheck disable=SC2088  # '~/' is an intentional ROS private-name remap.
+  if native_ros timeout --signal=INT --kill-after=2s 30s \
+      ros2 component load --no-daemon --spin-time 10 \
+      /demo/planner_container \
+      mrs_octomap_planner mrs_octomap_planner::MinimalOctomapPlanner \
+      -n minimal_planner --node-namespace /demo \
+      -p config:="$DEMO_ROOT/config/planner.yaml" \
+      -p use_sim_time:=true \
+      -r '~/octomap_in:=/octomap_binary' \
+      -r 'get_path_in:=/demo/minimal_planner/get_path' \
+      >>"$planner_load_log" 2>&1; then
+    planner_loaded=1
+    break
+  fi
+  sleep 1
+done
+((planner_loaded == 1)) || {
+  echo "Planner component could not be loaded after 3 attempts" >&2
+  exit 12
+}
 
 planner_service_ready=0
 planner_services_log="$run_dir/logs/planner-services.log"
