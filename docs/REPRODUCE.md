@@ -36,7 +36,7 @@ cd PX4-3D-LiDAR-Nav-Demo
 | DLIO | 官方 `feature/ros2` commit + 本仓库审核补丁 |
 | MAVROS | 官方 `2.14.0` commit + vehicles map 与 router address 并发补丁 |
 | Ubuntu | 官方 Noble WSL rootfs URL + SHA-256 |
-| ROS 2 / Gazebo | Ubuntu rootfs 内安装 Jazzy / Harmonic 包 |
+| ROS 2 / Gazebo | 固定 ROS 官方签名 key fingerprint，在 Ubuntu rootfs 内安装 Jazzy / Harmonic 包 |
 | MRS A* | CTU MRS stable 软件源，先验证签名 key 与 InRelease |
 | 场景 | 本仓库跟踪 LiDAR 模型、Gazebo 世界与 ROS 参数 |
 
@@ -50,6 +50,12 @@ Ubuntu rootfs、PRoot、源码 commit 和本仓库补丁是固定输入；ROS/Ub
 的 apt 包由签名软件源在安装时解析，并把实际版本写入 manifest。因此它是
 “可一键重建并可审计”的环境，不宣称跨日期 bit-for-bit 相同。长期归档时应连同
 `runtime/logs/environment-packages.txt` 和本机生成的 `runtime.lock` 保存。
+
+ROS 软件源没有使用 `Trusted: yes`。安装脚本固定并验证仓库中的 ROS 官方公钥
+fingerprint，先以 `gpgv` 核验 `InRelease`，随后由 apt 通过 `Signed-By` 再次
+验证。脚本中针对 `/usr/bin/apt-key` 的单行修改只修复 PRoot 对新 keyring
+执行 shell builtin `test -r` 时的误判，并对修改前、修改后的精确文本都做检查；
+若 Ubuntu 实现发生变化，安装会明确失败而不是绕过签名验证。
 
 ## `setup.sh` 做了什么
 

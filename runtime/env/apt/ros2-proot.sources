@@ -1,7 +1,8 @@
-# The official ros2-apt-source key is verified explicitly with gpgv immediately
-# before this narrowly scoped proot compatibility source is installed.
+# PRoot-compatible equivalent of the official ros2-apt-source entry.  Noble's
+# apt cannot use that package's inline key under PRoot, so reference the same
+# package-provided keyring explicitly instead.
 Types: deb deb-src
-URIs: https://packages.ros.org/ros2/ubuntu
+URIs: http://packages.ros.org/ros2/ubuntu
 Suites: noble
 Components: main
-Trusted: yes
+Signed-By: /project/env/apt/ros2-archive-keyring.asc

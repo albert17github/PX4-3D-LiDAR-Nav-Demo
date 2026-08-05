@@ -23,7 +23,34 @@ actual_ros_apt_sha="$(sha256sum "$ROS_APT_DEB" | awk '{print $1}')"
   exit 1
 }
 dpkg -i "$ROS_APT_DEB"
-curl -fsSL https://packages.ros.org/ros2/ubuntu/dists/noble/InRelease -o /tmp/ros2-InRelease
+# PRoot reports an incorrect result for the shell builtin `[ -r FILE ]` on
+# files created after extraction.  Noble apt-key uses that check in its
+# --readonly path and otherwise silently substitutes /dev/null for Signed-By.
+# shellcheck disable=SC2016 # These are literal apt-key source fragments.
+apt_key_readability_old='create_new_keyring() { if [ ! -r "$FORCED_KEYRING" ]; then'
+# shellcheck disable=SC2016 # These are literal apt-key source fragments.
+apt_key_readability_new='create_new_keyring() { if ! /usr/bin/test -r "$FORCED_KEYRING"; then'
+if grep -Fq "$apt_key_readability_old" /usr/bin/apt-key; then
+  # shellcheck disable=SC2016 # Keep the apt-key variable literal.
+  sed -i 's#if \[ ! -r "$FORCED_KEYRING" \]; then#if ! /usr/bin/test -r "$FORCED_KEYRING"; then#' \
+    /usr/bin/apt-key
+fi
+grep -Fq "$apt_key_readability_new" /usr/bin/apt-key || {
+  echo "Unsupported apt-key readability implementation" >&2
+  exit 1
+}
+ROS_APT_KEY=/project/env/apt/ros2-archive-keyring.asc
+actual_ros_key_fingerprint="$(gpg --show-keys --with-colons --fingerprint "$ROS_APT_KEY" | awk -F: '$1 == "fpr" {print $10; exit}')"
+[[ "$actual_ros_key_fingerprint" == "$ROS_APT_KEY_FINGERPRINT" ]] || {
+  echo "ROS apt signing key fingerprint mismatch" >&2
+  exit 1
+}
+# The official ros2-apt-source package uses HTTP for this repository.  Package
+# authenticity is provided by the signed InRelease metadata, which is checked
+# here and again by apt through Signed-By.  Do not bypass TLS verification.
+curl -fsSL --retry 5 --retry-all-errors \
+  http://packages.ros.org/ros2/ubuntu/dists/noble/InRelease \
+  -o /tmp/ros2-InRelease
 gpgv --keyring /usr/share/keyrings/ros2-archive-keyring.gpg /tmp/ros2-InRelease
 install -m 0644 /project/env/apt/ros2-proot.sources /usr/share/ros-apt-source/ros2.sources
 

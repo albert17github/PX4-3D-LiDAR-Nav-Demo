@@ -7,6 +7,7 @@
 ## Self-contained runtime + corrected geometry — 2-RUN PASS (2026-08-05)
 
 - 项目默认运行时已从兄弟项目迁入本 checkout 的 `runtime/`。`./setup.sh --install-host-deps` 是普通用户首次入口，`./setup.sh --verify-only` 核验 source commit、补丁、动态库闭包、Python 自测、apt manifest 与仿真几何合同；默认启动链不读取 `/home/albert/PX4-LiDAR-SLAM-Sim`、`RVPX4` 或其他兄弟目录。
+- 私有 GitHub feature branch 的全新 clone 已从零执行到 Gazebo/Harmonic 依赖解析阶段，期间真实发现并修复 PRoot 下 `apt-key` 对新 keyring 的可读性误判。仓库现在跟踪 ROS 官方公钥并固定 fingerprint `C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654`；安装时先用 `gpgv` 验证签名 `InRelease`，apt 再通过 `Signed-By` 复验，不使用 `Trusted: yes` 或跳过证书检查。为避免再生成一套约 `14 GiB` 的重复环境，该干净副本在越过故障点、进入 730 个 Gazebo 包下载后按用户要求停止并移入回收站；不能把它记作完整 clean-install PASS。当前主 checkout 的完整 runtime 核验与下面两轮端到端飞行 PASS 不受影响。
 - Git 只跟踪安装配方、版本锁、补丁、模型、world 与脚本；约 `14 GiB` 的 rootfs、源码 checkout、build、overlay、日志和 run 都由 setup 生成并在 `.gitignore` 排除。`runtime/config/versions.env` 固定 Ubuntu Noble WSL rootfs URL/SHA、PRoot SHA、PX4 `v1.17.0` commit `d6f12ad1`、DLIO commit `c8acc371`、MAVROS `2.14.0` commit `c655e634` 与所有补丁 SHA。
 - 迁移不复制旧 run、报告或 ULog；当前 runtime 中三套源码 checkout 都有官方 origin、无 Git alternates，也没有指向兄弟项目的 symlink。`--seed-from` 只保留为显式的本机迁移加速选项，普通用户不需要。
 - MAVROS 早期偶发 `double free or corruption` 的根因位于固定 `2.14.0` 中两个上游已修复的并发区：原 vehicles map 锁补丁之外，新增按上游 `bf464a2b`、`65cec447`、`07944251`、`d07483ee` 提取的 router `remote_addrs/stale_addrs` 锁补丁。修补后的 `libmavros.so`/`libmavros_plugins.so` 哈希进入 runtime lock，连续正式 run 未再出现崩溃。
