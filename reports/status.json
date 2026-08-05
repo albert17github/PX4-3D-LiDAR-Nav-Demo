@@ -1,0 +1,34 @@
+{
+  "updated_at": "2026-08-05T11:39:03+08:00",
+  "state": "completed",
+  "phase": "交互栈已用 readiness 快速冷启动并等待 RViz 目标；历史持久多任务、稳定 yaw 与自动降落证据保持 PASS",
+  "summary": "新冷启动从 655..784 s 降至 287 s；Gazebo/RViz 可见，在线 0.4 m OctoMap、MAVROS map odom、PX4 fusion readiness 与 MRS planner service 已核验。本轮尚未选择目标或解锁。",
+  "active_run": "runs/20260805-113113-Yd1sN7",
+  "progress": 100,
+  "steps": [
+    {"name": "Recovery · VM Reset", "state": "done", "detail": "11:09 失败 run 与两层 stale marker 已用现有停止路径封存；无 OOM、kernel panic 或 failed unit 证据"},
+    {"name": "Startup · Fast Readiness", "state": "done", "detail": "base 263 s、no-GCS 1 s、planner 19 s、RViz/recording 4 s；总计 287 s，历史为 655..784 s"},
+    {"name": "No-QGC · Startup", "state": "done", "detail": "QGC 启动/复用和 allow-external-qgc 已移除；QGC 进程全程为零"},
+    {"name": "Startup · Observable", "state": "done", "detail": "组件、readiness gate 和 health PASS/FAIL 在终端实时显示；MAVROS fatal 可立即中止"},
+    {"name": "PX4 · No-GCS", "state": "done", "detail": "landed/disarmed 后 NAV_DLL_ACT 从 2 固定并 readback 为 0，其他健康门保持不变"},
+    {"name": "Interactive · Persistent", "state": "done", "detail": "同一会话连续完成两轮选点飞行；每次落地后重新等待，实际落地点成为下一轮 start"},
+    {"name": "Heading · Stable", "state": "done", "detail": "+90° yaw setpoint 在 5 点折线路径中保持不变；186 个样本最大实际误差 2.04°"},
+    {"name": "Evidence · Cleanup", "state": "done", "detail": "双任务和稳定朝向两套视频、地图、JSON、参数 readback 与 SHA-256 全部 OK；shutdown clean"}
+  ],
+  "evidence": [
+    {"name": "优化启动桌面", "detail": "Gazebo 与 RViz 同屏，在线点云、PX4 pose 和 OctoMap 状态 OK", "href": "../runs/20260805-113113-Yd1sN7/evidence/desktop-readiness.png"},
+    {"name": "优化启动 RViz", "detail": "真实 3D LiDAR 与 1622 occupied centers 的 0.4 m OctoMap", "href": "../runs/20260805-113113-Yd1sN7/evidence/rviz-readiness.png"},
+    {"name": "优化启动在线核验", "detail": "19 个 readiness gate、MAVROS/odom/OctoMap/planner/landed 状态与阶段计时", "href": "../runs/20260805-113113-Yd1sN7/evidence/startup-live-verification.txt"},
+    {"name": "优化启动阶段计时", "detail": "readiness 模式、base/planner/RViz/total 秒数与当前等待状态", "href": "../runs/20260805-113113-Yd1sN7/status"},
+    {"name": "持久任务 001", "detail": "实际起点到 [5,0,2.2]，误差 0.072 m，落地后继续等待", "href": "../runs/20260804-202200-Hs10L6/evidence/mission-result-001.json"},
+    {"name": "持久任务 002", "detail": "从第一次实际落地点返回 [0,0,2.2]，误差 0.325 m", "href": "../runs/20260804-202200-Hs10L6/evidence/mission-result-002.json"},
+    {"name": "稳定朝向任务", "detail": "+90° 固定机头、5 点路径、实际 yaw 与 target yaw 完整采样", "href": "../runs/20260804-203906-n9Br4K/evidence/mission-result-001.json"},
+    {"name": "稳定朝向视频", "detail": "真实 Gazebo/RViz 会话、规划折点、到达与自动降落", "href": "../runs/20260804-203906-n9Br4K/evidence/rviz-ab-demo.mp4"},
+    {"name": "No-QGC 任务结果", "detail": "完整路径、OFFBOARD、arm、航点、目标误差和自动降落", "href": "../runs/20260804-193505-kEjVgs/evidence/mission-result.json"},
+    {"name": "No-QGC RViz 视频", "detail": "82.375 s H.264，记录在线地图、规划路径和实际执行", "href": "../runs/20260804-193505-kEjVgs/evidence/rviz-ab-demo.mp4"},
+    {"name": "PX4 no-GCS readback", "detail": "NAV_DLL_ACT_before=2，NAV_DLL_ACT_after=0", "href": "../runs/20260804-193505-kEjVgs/evidence/px4-no-gcs-readback.txt"},
+    {"name": "No-QGC 证据哈希", "detail": "截图、地图、视频、JSON、参数 readback 和视频信息全部 ALL OK", "href": "../runs/20260804-193505-kEjVgs/evidence/sha256.txt"},
+    {"name": "历史交互任务", "detail": "移除 QGC 前的 RViz 交互选点完整飞行", "href": "../runs/20260804-172738-8jPZ9i/evidence/mission-result.json"},
+    {"name": "MAVROS 崩溃证据", "detail": "QGC 流量下 MAV_CMD 520 后 double free，relay 无 subscriber", "href": "../runs/20260804-190427-0Sn4Ix/logs/base-stack-start.log"}
+  ]
+}

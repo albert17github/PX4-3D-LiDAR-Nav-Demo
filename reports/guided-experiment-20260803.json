@@ -1,0 +1,61 @@
+{
+  "experiment": "PX4 3D LiDAR A-to-B guided end-to-end rerun",
+  "date": "2026-08-03",
+  "overall": {
+    "mission": "PASS",
+    "fail_closed_policy": "PASS",
+    "evidence_integrity": "PASS",
+    "shutdown": "WARN"
+  },
+  "contract": {
+    "A_m": [0.0, 0.0, 2.2],
+    "B_m": [7.0, 7.0, 2.2],
+    "obstacle_center_m": [3.5, 3.5],
+    "obstacle_radius_m": 0.65,
+    "minimum_center_clearance_m": 1.35,
+    "minimum_cross_track_m": 0.55,
+    "maximum_goal_error_m": 0.4
+  },
+  "attempts": [
+    {
+      "demo_run": "20260803-142437-0S5Hkc",
+      "base_run": "20260803-142440-aQsJ2O",
+      "health": "PASS",
+      "occupied_voxels": 1657,
+      "lidar_hz": 9.455,
+      "octomap_hz": 9.471,
+      "px4_imu_hz": 48.077,
+      "external_odometry_hz": 99.708,
+      "planner": "five incomplete paths of length 5 rejected",
+      "mission": "FAIL_CLOSED",
+      "landing": "PASS",
+      "shutdown": "PASS",
+      "evidence": "runs/20260803-142437-0S5Hkc/evidence"
+    },
+    {
+      "demo_run": "20260803-144745-8J6JGv",
+      "base_run": "20260803-144748-NfX0ER",
+      "health": "PASS",
+      "occupied_voxels": 1756,
+      "lidar_hz": 9.662,
+      "octomap_hz": 9.416,
+      "px4_imu_hz": 47.523,
+      "external_odometry_hz": 99.975,
+      "planner": "attempt 1 incomplete rejected; attempt 2 complete path accepted",
+      "path_points": 7,
+      "path_length_m": 12.118271791508988,
+      "minimum_obstacle_center_distance_m": 2.5455844607404363,
+      "maximum_cross_track_m": 2.5455845134240076,
+      "goal_error_m": 0.2575101631143071,
+      "mission": "PASS",
+      "landing": "PASS",
+      "shutdown": "WARN_GAZEBO_GUI_TEARDOWN",
+      "evidence": "runs/20260803-144745-8J6JGv/evidence"
+    }
+  ],
+  "process_cleanup": {
+    "active_markers_remaining": 0,
+    "owned_process_groups_remaining": 0
+  },
+  "storage_boundary": "At final audit the root filesystem had about 15 GB available, below the project's greater-than-or-equal-to-15 GiB startup threshold; no evidence was deleted and no third formal run was started."
+}

@@ -1,0 +1,20 @@
+# MinimalOctomapPlanner upstream parameters with only the package root-key fix
+# and a bounded demo flight envelope. Unknown space is allowed because this is
+# a static visual simulation, not a real-aircraft safety policy.
+mrs_uav_planner:
+  minimal_planner:
+    planning_tree_resolution: 0.4
+    distance_transform_distance: 20.0
+    safe_obstacle_distance: 2.4
+    distance_penalty: 1.0
+    greedy_penalty: 1.0
+    max_waypoint_distance: -1.0
+    min_altitude: 1.5
+    max_altitude: 3.0
+    unknown_is_occupied: false
+    timeout_threshold: 5.0
+    min_path_length: 0.5
+    viz:
+      scale:
+        points: 0.08
+        lines: 0.05

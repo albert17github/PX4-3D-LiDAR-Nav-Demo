@@ -1,0 +1,107 @@
+# PX4 3D LiDAR A→B Navigation Demo
+
+这是一个刻意保持简洁的实时图形化仿真项目。它不实现新的 SLAM 或规划算法，只把成熟开源组件连接成闭环：
+
+```text
+PX4 SITL + Gazebo 3D LiDAR
+              ↓ point cloud + IMU
+             DLIO
+              ├── odometry → MAVROS → PX4 EKF2
+              └── pose + cloud → OctoMap
+                                   ↓
+                         MRS 3D A* planner
+                                   ↓ waypoints
+                         MAVROS OFFBOARD → PX4
+```
+
+## 最终演示
+
+- Ubuntu 桌面实时显示 Gazebo 仿真世界。
+- RViz 实时显示 3D LiDAR、OctoMap、PX4 位姿、A/B 与规划路径。
+- 默认从 A `(0,0,2.2)` 飞到 B `(7,7,2.2)`。
+- A-B 直线穿过圆柱障碍，规划器必须给出非直线绕行路径。
+- 无人机实际沿路径飞行，到达 B 后自动降落。
+- 交互模式每次落地后继续等待下一次 RViz 选点，不重启整套仿真。
+- 每次运行保存截图、视频、地图和简短 JSON 结果。
+
+## 复用而非重写
+
+| 功能 | 开源组件 |
+|---|---|
+| 飞控与状态估计 | PX4 v1.17 SITL / EKF2 |
+| 物理与传感器 | Gazebo Sim / 3D LiDAR |
+| 激光惯性里程计 | DLIO |
+| 飞控通信 | MAVROS |
+| 三维地图 | ROS 2 OctoMap server |
+| 三维路径规划 | MRS MinimalOctomapPlanner / A* |
+| 可视化 | RViz |
+
+项目自写部分只负责启动编排、目标接收、安全校验、平滑发送位置航点和保存证据。
+
+## 运行
+
+主入口固定为：
+
+```bash
+cd /home/albert/PX4-3D-LiDAR-Nav-Demo
+./demo.sh
+```
+
+脚本会重新冷启动完整栈，通过健康门后才允许 `OFFBOARD` 与 arm；规划路径不完整或净距不足时会在 A 悬停有界重试，全部失败则自动安全降落。成功运行会在新的 `runs/<timestamp>/evidence/` 中保存 JSON、截图、H.264 视频、`.bt` 地图和 SHA-256 清单。
+
+默认冷启动使用面向本演示的 `readiness` 模式：仍逐项验证 Gazebo/LiDAR、MAVROS、landed/disarmed、DLIO、PX4 EKF2 水平位置融合、TF 与非空 OctoMap，但不在每次演示前重复底层归档项目完整的 66 项 startup audit。需要恢复完整审计路径时运行：
+
+```bash
+PX4_DEMO_STARTUP_HEALTH_MODE=full ./demo.sh --interactive
+```
+
+本项目不需要 QGroundControl。启动期间由 MAVROS 连接 PX4，终端会持续显示每个组件和 readiness gate 的进度；如果桌面上已有 QGroundControl，入口会直接提示关闭，避免其 MAVLink GCS 流量进入本演示。PX4 的 SITL-only 合同在 landed/disarmed 状态下验证并固定 `NAV_DLL_ACT=0`，不会因此关闭其他定位、OFFBOARD 或 arming health checks。
+
+RViz 交互选点模式：
+
+```bash
+./demo.sh --interactive
+```
+
+等待终端显示 `waiting_for_interactive_goal`，然后在 RViz 顶部选择 `2D Goal Pose`，在地图上按住鼠标并拖出箭头。点击位置提供目标 X/Y，飞行高度固定为 `2.2 m`，箭头方向作为整次任务的固定机头朝向。机体只在起飞时按最短角度、最多 `45°/s` 平滑转向，不再跟随每个规划折点反复旋转。
+
+路径通过在线 OctoMap 规划和安全校验后才会进入 OFFBOARD。到达后自动降落，但程序、Gazebo、RViz、DLIO 和地图都不会退出；终端重新显示 `waiting_for_interactive_goal` 后可以继续选下一个点。下一次规划从飞机的实际落地点开始。等待会持续到用户停止，配置中的 30 分钟只作为周期性等待提示，不会关闭窗口。完成全部尝试后在原终端按一次 `Ctrl+C`。
+
+分步入口同样支持交互：
+
+```bash
+./scripts/start.sh
+./scripts/fly_ab.sh --interactive
+# 完成多次尝试后按 Ctrl+C 结束 fly_ab.sh
+./scripts/stop.sh
+```
+
+## 已验证结果
+
+2026-08-05 冷启动优化 run `20260805-113113-Yd1sN7` PASS：虚拟机异常重启后的 stale marker 已由现有停止脚本封存；新的 base readiness 用时 `263 s`，完整入口到 RViz `waiting_for_interactive_goal` 用时 `287 s`，此前四次成功启动为 `655..784 s`，约快 `56%..63%`。Gazebo/RViz 同屏截图、在线 `0.4 m` OctoMap（`1622` occupied centers）、MAVROS connected、`map` odom 和 MRS planner service 均已现场核验；本轮只启动并等待选点，没有自动触发飞行。
+
+2026-08-04 持久多目标 run `20260804-202200-Hs10L6` PASS：同一次 Gazebo/RViz/PX4/DLIO/OctoMap 会话先从实际起点 `(-0.001,-0.001)` 飞到 `(5,0)`，落地后没有退出；随后从第一次实际落地点 `(5.035,0.015)` 重新规划飞回 `(0,0)`。两次目标误差分别为 `0.072 m`、`0.325 m`，均经历完整路径、`AUTO.LAND`、landed/disarmed，并分别保存为 `mission-result-001.json`、`mission-result-002.json`。第二次落地后仍重新进入选点等待，最终由 `Ctrl+C` 干净停止。
+
+2026-08-04 稳定朝向 run `20260804-203906-n9Br4K` PASS：RViz 目标 `(5,0,2.2)` 的箭头设为 `+90°`，规划路径含 5 点和多个折点。起飞完成后的 186 个实际 yaw 样本中，setpoint 全程变化 `0.000°`，实际机头范围 `87.96°..91.53°`，平均误差 `0.27°`、最大误差 `2.04°`；目标误差 `0.104 m`，随后自动降落并继续等待下一目标。完整 evidence 的 SHA-256 已复验通过。
+
+2026-08-04 无 QGC 冷启动和完整交互飞行已 PASS：run `20260804-193505-kEjVgs`、base run `20260804-193509-QGEVqW`。启动时 `NAV_DLL_ACT` 从 x500 默认值 `2` 读回并固定为 `0`；RViz 目标 `(5,0,2.2)` 得到 5 点 complete path，路径长 `6.183 m`、圆柱中心最小距离 `3.625 m`，实际到达误差 `0.070 m`，随后 `AUTO.LAND`、landed/disarmed。82.375 秒视频、截图、地图、JSON、参数 readback 和 SHA-256 全部通过；底层 shutdown clean，QGC/受管进程/active marker 均为零。
+
+2026-08-04 已完成一次 `./demo.sh --interactive`：RViz 选择目标 `(5,0,2.2)`，MRS 返回 4 点 complete path，路径长 `5.921 m`、圆柱中心最小距离 `3.405 m`，PX4 实际到达目标，误差 `0.105 m`，随后 `AUTO.LAND`、landed/disarmed。run 为 `20260804-172738-8jPZ9i`，视频、截图、地图、JSON 和 SHA-256 全部通过，底层 shutdown clean。
+
+2026-08-03 已连续完成两次独立 `./demo.sh`：
+
+| run | 障碍中心最小距离 | B 点误差 | 结束状态 |
+|---|---:|---:|---|
+| `20260803-120927-6lYpVn` | `2.828 m` | `0.0915 m` | `AUTO.LAND`，landed/disarmed |
+| `20260803-122744-TgKS1c` | `2.546 m` | `0.2581 m` | `AUTO.LAND`，landed/disarmed |
+
+合同要求分别为 `≥1.35 m` 与 `≤0.4 m`。两次 run 的底层 health、Gazebo/RViz 可见性、PointCloud2、在线 OctoMap、PX4 uORB 外部水平位置融合、视频、地图和哈希均已复核。
+
+同日又按报告步骤完整复现：`20260803-142437-0S5Hkc` 连续拒绝 5 条 incomplete path 后安全降落；新的独立 run `20260803-144745-8J6JGv` 获得 7 点完整路径，中心距离 `2.546 m`，实际到 B 误差 `0.2575 m`，随后 landed/disarmed。第二轮任务与证据哈希 PASS，但 Gazebo GUI teardown 记录 Segmentation fault，所以报告单独保留 shutdown WARN，不能称为 clean shutdown。
+
+浏览器报告：<http://127.0.0.1:8770/reports/index.html>
+
+详细当前状态和一键复核命令见 [PROJECT_MEMORY.md](PROJECT_MEMORY.md)，静态报告源文件见 [reports/index.html](reports/index.html)。
+
+详细的逐阶段实施、验收条件和小模型分工见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)。
+日期备份位于 [docs/backups/IMPLEMENTATION_PLAN-20260801.md](docs/backups/IMPLEMENTATION_PLAN-20260801.md)。

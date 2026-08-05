@@ -1,0 +1,8 @@
+.runtime/
+runs/
+evidence/*.mp4
+evidence/*.bt
+evidence/*.mcap
+__pycache__/
+*.pyc
+
