@@ -4,11 +4,12 @@
 
 在 Ubuntu 24 桌面中实时显示 Gazebo 和 RViz，让 PX4 SITL 无人机使用三维 LiDAR + IMU 完成定位与 OctoMap 建图，调用开源 MRS 三维 A* 规划器获得固定 A→B 或 RViz 交互目标路径，再通过 MAVROS OFFBOARD 位置航点实际飞完整条路径并自动降落。交互模式作为后续演示技术底座，应在同一会话中支持多次选点，同时保持自写代码只承担薄编排和安全连接层。
 
-## GitHub README 16:10 image crops — LOCAL PASS (2026-08-06)
+## GitHub README 16:10 image crops — PASS (2026-08-06)
 
-- GitHub 主页 `README.md` 的“运行画面”不能依赖报告页 CSS 裁切，因此新增 4 张独立展示图并改为直接引用；四张文件均为 RGB `960×600`（16:10），GitHub Markdown API 确认全部图片链接保留且可解析。
+- GitHub 主页 `README.md` 的“运行画面”不能依赖报告页 CSS 裁切，因此新增 4 张独立展示图并改为直接引用；四张文件均为 RGB `960×600`（16:10）。运行画面使用 GitHub 会保留的 `width="100%"` 表格、两个 `width="50%"` 列和只指定宽度的图片，锁定双栏尺寸且让高度按原比例计算。
 - `gazebo-world-ready-16x10.png`、`rviz-map-ready-16x10.png` 与 `rviz-flight-path-16x10.png` 保留各自主场景；`gazebo-landed-b-16x10.png` 使用更近的 16:10 裁剪框，让落地后的 x500 在主页双栏缩略图中清晰可见。准确来源与裁剪框记录在 `reports/assets/README.md`。
 - 展示图只做确定性裁剪与等比例缩放，没有拉伸或生成式重绘。4 张原始证据图未覆盖，原始 SHA-256 保持不变；`reports/assets/SHA256SUMS` 现在同时核验 4 张原图和 4 张展示图，8 项全部 PASS。
+- Firefox 直接打开 GitHub 分支主页验证：4 个 cell 均为 `418.5 px`，4 张展示图均为 `391.5×244.68 px`、计算比例 `1.6`、自然尺寸 `960×600`，全部加载成功且页面横向溢出为 0。交付分支为 `docs/readme-gallery-16x10`，对应 PR #4。
 - 本阶段只修改 README、图片来源说明、哈希清单和新增展示资产，不修改报告页、SLAM、OctoMap、规划、飞行脚本或 PX4 参数。
 
 ## Public copy and 16:10 gallery — PASS (2026-08-06)
