@@ -4,12 +4,13 @@
 
 在 Ubuntu 24 桌面中实时显示 Gazebo 和 RViz，让 PX4 SITL 无人机使用三维 LiDAR + IMU 完成定位与 OctoMap 建图，调用开源 MRS 三维 A* 规划器获得固定 A→B 或 RViz 交互目标路径，再通过 MAVROS OFFBOARD 位置航点实际飞完整条路径并自动降落。交互模式作为后续演示技术底座，应在同一会话中支持多次选点，同时保持自写代码只承担薄编排和安全连接层。
 
-## Public copy and 16:10 gallery — LOCAL PASS (2026-08-06)
+## Public copy and 16:10 gallery — PASS (2026-08-06)
 
 - `README.md`、`reports/index.html` 与 `reports/assets/README.md` 的公开文案已收敛为项目能力、组件、运行画面和参考结果；移除了“补拍、调整视角、另一轮任务”等调试过程表述。报告截图标签现在描述 Gazebo、RViz、OctoMap 与 MRS 3D A* 本身，不再把图片获取过程当作页面主内容。
 - 公开参考结果统一到主路径图对应的 `runs/20260806-101021-Gv9JVf`：8 个 `planned_path` 点、路径长 `12.75285 m`、cross-track `3.11127 m`、障碍中心距 `2.85576 m`、B 误差 `0.04039 m`，随后 `AUTO.LAND`、`landed_disarmed`，mission verdict 为 PASS。README、HTML 和 `reports/status.json` 使用一致的三位小数展示值。
 - 报告截图区由交错时间线改为桌面端规整 2×2、移动端单列；每个图片区使用固定 16:10 容器、`object-fit: cover` 和逐图 `object-position`，通过裁切统一比例，没有拉伸或改写原始 PNG。`reports/assets/SHA256SUMS` 的 4 张原图全部复核通过。
 - Firefox headless 实测桌面 `1440×1414` 与移动端 `500×1614`：4 个图片区计算比例均为 `1.6`、`object-fit=cover`，页面横向溢出均为 0；人工检查确认物理世界、在线地图、A→B 路径和落地无人机仍位于裁切后的可视区域。HTML 相对链接/锚点、JSON、公开指标一致性、禁用调试措辞扫描与 `git diff --check` 均 PASS。
+- GitHub 交付分支为 `docs/refine-public-copy-gallery`，对应 PR #3；公开报告入口仍为 `https://albert17github.github.io/PX4-3D-LiDAR-Nav-Demo/`。
 - 本阶段只修改公开文档、报告 CSS/HTML 与机器可读参考结果，没有修改 SLAM、OctoMap、规划、飞行脚本、PX4 参数或任何原始图片。
 
 ## RViz path image camera retake — PASS (2026-08-06)
