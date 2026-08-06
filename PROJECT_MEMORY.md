@@ -4,6 +4,13 @@
 
 在 Ubuntu 24 桌面中实时显示 Gazebo 和 RViz，让 PX4 SITL 无人机使用三维 LiDAR + IMU 完成定位与 OctoMap 建图，调用开源 MRS 三维 A* 规划器获得固定 A→B 或 RViz 交互目标路径，再通过 MAVROS OFFBOARD 位置航点实际飞完整条路径并自动降落。交互模式作为后续演示技术底座，应在同一会话中支持多次选点，同时保持自写代码只承担薄编排和安全连接层。
 
+## RViz path image camera retake — PASS (2026-08-06)
+
+- 为避免首页路径图中 LiDAR 扫描与中央障碍在观察方向上重合，重新运行固定 A→B 任务，并只使用 RViz `Move Camera` 调整观察角度；没有修改地图、规划、飞行代码或参数。
+- Demo run `runs/20260806-101021-Gv9JVf` 在 `248 s` ready，得到 8 点完整路径：路径长 `12.75285 m`、cross-track `3.11127 m`、障碍中心距 `2.85576 m`、B 误差 `0.04039 m`，随后 `AUTO.LAND`、`landed_disarmed`，mission verdict 为 PASS。
+- 新图由 RViz `File → Save Image` 直接导出为 `900×708`，替换 `reports/assets/rviz-flight-path.png`；SHA-256 为 `c9a106450328d1f8519f5f1c1a737e09127e470a953ef0fa85cd2ba1d62defcf`。原始分辨率检查确认无对话框、桌面或黑块，扫描面、位姿轴和中央障碍已在画面上分开。
+- 停止后 demo/base active marker 与受管进程为 0。停止脚本因 `/mavros/extended_state` 未发布而记录 `px4_lio_restore=SKIPPED_NOT_PROVEN_LANDED`；下一次启动仍会按现有 boot profile 先修复参数，不能把本轮记录为参数 restore PASS。
+
 ## Public GitHub landing and report — PASS (2026-08-06)
 
 - GitHub 首页 `README.md` 已改为面向首次访问者的项目说明，只保留功能、真实 Gazebo/RViz 图片、架构、安装、使用、参考结果、运行边界和贡献入口；移除了内部 run 编号、旧版本流水账、作者目录、工作记忆入口和本机 `127.0.0.1` 报告地址。

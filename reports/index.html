@@ -136,8 +136,8 @@
     .world-pillar { left: 10%; top: 59%; }
     .map-octomap { left: 49%; top: 55%; }
     .map-cloud { left: 72%; top: 22%; }
-    .path-a { left: 45%; top: 71%; }
-    .path-b { left: 51%; top: 27%; }
+    .path-a { left: 61%; top: 79%; }
+    .path-b { left: 43%; top: 24%; }
     .path-line { left: 68%; top: 47%; }
     .drone-lidar { left: 52%; top: 39%; }
 
@@ -284,7 +284,7 @@
         <span class="source-chip">RViz Save Image · 900×708</span>
         <figcaption class="hero-caption">
           <strong>在线 OctoMap 上的 MRS 3D A* 路径</strong>
-          <span>A [0,0,2.2] → B [7,7,2.2] · 9 path points · AUTO.LAND</span>
+          <span>A [0,0,2.2] → B [7,7,2.2] · 调整视角后补拍 · mission PASS</span>
         </figcaption>
       </figure>
     </section>
@@ -323,12 +323,12 @@
         <article class="scene scene--rviz">
           <div class="scene-media">
             <img src="assets/rviz-flight-path.png" alt="RViz 应用内导出的 A 到 B 绿色绕障路径、起点目标标记和飞行器位姿" loading="lazy">
-            <span class="source-chip">RViz Save Image · reference path</span>
+            <span class="source-chip">RViz Save Image · adjusted view</span>
             <span class="pin path-a" data-label="实际起点 A">A</span>
             <span class="pin path-b" data-label="目标 B">B</span>
             <span class="pin pin--left path-line" data-label="3D A* 路径">P</span>
           </div>
-          <div class="scene-copy"><span class="scene-index">03</span><div><h3>规划并执行非直线路径</h3><p>参考任务得到 9 点路径，横向绕行 3.394 m。路径通过完整性与净距检查后，才发送给 PX4 OFFBOARD。</p></div></div>
+          <div class="scene-copy"><span class="scene-index">03</span><div><h3>规划并执行非直线路径</h3><p>补拍任务得到 8 点完整路径，横向绕行 3.111 m。路径通过完整性与净距检查后，才发送给 PX4 OFFBOARD。</p></div></div>
         </article>
 
         <article class="scene scene--drone">
@@ -420,7 +420,7 @@ cd PX4-3D-LiDAR-Nav-Demo
     <section class="section" id="evidence">
       <header class="section-head">
         <div><span class="section-label">Reference validation · 2026-08-06</span><h2>完整冷启动、在线规划、飞行与落地</h2></div>
-        <p>参考环境从冷启动到 ready 用时 247 秒；随后完成在线规划、全部航点执行、到达 B 和 <code>AUTO.LAND</code>。本页图片来自同一次闭环验证。</p>
+        <p>参考环境从冷启动到 ready 用时 247 秒；随后完成在线规划、全部航点执行、到达 B 和 <code>AUTO.LAND</code>。主路径图在相同配置下完成另一轮任务后调整 RViz 视角补拍。</p>
       </header>
       <div class="evidence">
         <article class="evidence-main">

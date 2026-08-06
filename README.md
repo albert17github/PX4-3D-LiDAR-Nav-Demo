@@ -16,7 +16,7 @@
   <img src="reports/assets/rviz-flight-path.png" width="900" alt="RViz 中的三维 LiDAR 点云、OctoMap、起点、目标点和绿色规划路径">
 </p>
 
-<p align="center"><sub>RViz 软件内导出：在线 OctoMap 与实际执行的三维绕障路径</sub></p>
+<p align="center"><sub>RViz 软件内导出：调整观察角度后的在线 OctoMap 与实际三维绕障路径</sub></p>
 
 ## 功能
 
