@@ -4,11 +4,11 @@
 
 在 Ubuntu 24 桌面中实时显示 Gazebo 和 RViz，让 PX4 SITL 无人机使用三维 LiDAR + IMU 完成定位与 OctoMap 建图，调用开源 MRS 三维 A* 规划器获得固定 A→B 或 RViz 交互目标路径，再通过 MAVROS OFFBOARD 位置航点实际飞完整条路径并自动降落。交互模式作为后续演示技术底座，应在同一会话中支持多次选点，同时保持自写代码只承担薄编排和安全连接层。
 
-## Online report repository return link — LOCAL PASS (2026-08-06)
+## Online report repository return link — PASS (2026-08-06)
 
 - `reports/index.html` 顶部导航最前面新增“← 返回开源项目”，同标签页链接到 `https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo`，并提供 `aria-label="返回 GitHub 开源项目主页"`；页面底部和证据区原有源码链接继续保留。
 - Firefox headless 实测桌面 `1440 px` 与移动端 `500 px`：返回链接可见且目标正确，所有导航项无重叠，页面横向溢出均为 0；移动端导航自然换为两行，hero 未被覆盖。
-- HTML 结构检查与 `git diff --check` 均 PASS。本阶段只修改报告页导航和对应项目记录，不影响 README 图片、运行时、规划或飞行代码。
+- HTML 结构检查与 `git diff --check` 均 PASS。交付分支为 `docs/report-back-to-repository`，对应 PR #5；本阶段只修改报告页导航和对应项目记录，不影响 README 图片、运行时、规划或飞行代码。
 
 ## GitHub README 16:10 image crops — PASS (2026-08-06)
 
