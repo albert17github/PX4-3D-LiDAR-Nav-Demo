@@ -44,8 +44,7 @@ if [[ ! -f "$RUNTIME_ROOT/env/rootfs/.seed-copy-complete" ]]; then
   rsync -aH \
     --exclude='/PX4-LiDAR-SLAM-Sim/***' \
     --exclude='/RVPX4/***' \
-    --exclude='/home/albert/PX4-LiDAR-SLAM-Sim/***' \
-    --exclude='/home/albert/RVPX4/***' \
+    --exclude='/home/***' \
     --exclude='/project/***' \
     --exclude='/root/.Xauthority' \
     --exclude='/tmp/.X11-unix/***' \

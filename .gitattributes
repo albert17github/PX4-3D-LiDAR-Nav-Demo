@@ -1,1 +1,8 @@
+* text=auto eol=lf
+*.png binary
 *.patch -whitespace
+
+# The HTML files are project documentation, not the primary implementation.
+index.html linguist-documentation
+reports/index.html linguist-documentation
+runtime/patches/** linguist-vendored

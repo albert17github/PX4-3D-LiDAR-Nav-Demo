@@ -1,28 +1,41 @@
 {
-  "updated_at": "2026-08-05T20:19:04+08:00",
-  "state": "completed",
-  "phase": "项目内自包含运行时、正确 SE(2) 几何合同和两次独立 A→B 实际飞行全部 PASS；当前已 clean stop",
-  "summary": "默认启动不再依赖兄弟项目。车辆保留 0.55 rad 非零初始航向，cyan_pillar 经 world-to-map 变换后严格位于 map=(3.5,3.5) 的 A→B 中点；两次路径中心距 2.961/2.927 m，B 误差 0.024/0.037 m，均自动降落。",
-  "publication": {"repository": "albert17github/PX4-3D-LiDAR-Nav-Demo", "visibility": "public", "license": "Apache-2.0"},
-  "active_run": null,
-  "progress": 100,
-  "steps": [
-    {"name": "Runtime · Project Owned", "state": "done", "detail": "setup 在当前 checkout 的 runtime 内下载、构建并核验固定 PX4、DLIO、MAVROS、ROS/Gazebo、OctoMap 与 MRS"},
-    {"name": "Concurrency · MAVROS", "state": "done", "detail": "固定 MAVROS 2.14.0 应用 vehicles 与 router address 两组上游锁修复，二进制哈希进入 runtime lock"},
-    {"name": "Geometry · SE(2)", "state": "done", "detail": "配置与 SDF 自动核对；0.55 rad 初始航向下圆柱严格映射到 map=(3.5,3.5)，真正位于 A→B 中线"},
-    {"name": "Startup · Bounded Discovery", "state": "done", "detail": "逐组件 readiness 保留；MRS container 必须显式 ready，component load 使用 10 s discovery 与最多 3 次有界重试"},
-    {"name": "Flight · Independent Run 01", "state": "done", "detail": "12.886 m 路径，cross-track 3.111 m，中心距 2.961 m，B 误差 0.024 m，AUTO.LAND"},
-    {"name": "Flight · Independent Run 02", "state": "done", "detail": "12.724 m 路径，cross-track 3.111 m，中心距 2.927 m，B 误差 0.037 m，AUTO.LAND"},
-    {"name": "Evidence · Shutdown", "state": "done", "detail": "两轮截图、视频、地图、JSON 和 SHA-256 全通过；受管进程与活动标记均为 0"}
+  "schema_version": 1,
+  "updated_at": "2026-08-06T00:44:00+08:00",
+  "project": "PX4 3D LiDAR Navigation Demo",
+  "repository": "https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo",
+  "license": "Apache-2.0",
+  "status": "reference_demo_verified",
+  "scope": "Static-obstacle PX4 SITL navigation in Gazebo with online 3D mapping and automatic landing",
+  "reference_environment": {
+    "operating_system": "Ubuntu 24.04 LTS Desktop",
+    "architecture": "x86_64",
+    "ros": "ROS 2 Jazzy",
+    "simulator": "Gazebo Harmonic",
+    "px4": "v1.17.0",
+    "mavros": "2.14.0"
+  },
+  "reference_result": {
+    "startup_seconds": 247,
+    "path_points": 9,
+    "path_length_m": 13.507,
+    "max_cross_track_m": 3.394,
+    "minimum_obstacle_center_distance_m": 3.129,
+    "minimum_required_center_distance_m": 1.35,
+    "goal_error_m": 0.037,
+    "maximum_allowed_goal_error_m": 0.4,
+    "terminal_mode": "AUTO.LAND",
+    "landed_and_disarmed": true
+  },
+  "images": [
+    {"name": "Gazebo obstacle world", "href": "assets/gazebo-world-ready.png"},
+    {"name": "RViz online 3D map", "href": "assets/rviz-map-ready.png"},
+    {"name": "RViz planned path", "href": "assets/rviz-flight-path.png"},
+    {"name": "Gazebo landing at goal", "href": "assets/gazebo-landed-b.png"}
   ],
-  "evidence": [
-    {"name": "正式 run 01", "detail": "9 点完整路径、正确几何指标、全部航点与自动降落", "href": "../runs/20260805-182916-btMc4A/evidence/mission-result.json"},
-    {"name": "正式 run 01 桌面", "detail": "Gazebo、RViz、实时 LiDAR 与在线 OctoMap 同屏", "href": "../runs/20260805-182916-btMc4A/evidence/gazebo-rviz-desktop.png"},
-    {"name": "正式 run 01 哈希", "detail": "本轮全部 evidence 逐项校验", "href": "../runs/20260805-182916-btMc4A/evidence/sha256.txt"},
-    {"name": "正式 run 02", "detail": "独立冷启动后的第二条完整路径、全部航点与自动降落", "href": "../runs/20260805-183516-xIDcJr/evidence/mission-result.json"},
-    {"name": "正式 run 02 RViz", "detail": "Global、LiDAR、OctoMap 状态 OK，路径与最终位姿可见", "href": "../runs/20260805-183516-xIDcJr/evidence/rviz-final.png"},
-    {"name": "正式 run 02 视频", "detail": "95.375 s H.264，在线地图、路径执行与落地", "href": "../runs/20260805-183516-xIDcJr/evidence/rviz-ab-demo.mp4"},
-    {"name": "正式 run 02 哈希", "detail": "本轮全部 evidence 逐项校验", "href": "../runs/20260805-183516-xIDcJr/evidence/sha256.txt"},
-    {"name": "LIO yaw 四次连续任务", "detail": "历史 4-FLIGHT ULog 与 Gazebo 真值证据仍保留", "href": "../runs/20260805-151557-Otlbug/evidence/lio-yaw-ulog-summary.json"}
+  "limitations": [
+    "SITL research demo; not flight-certified software",
+    "Static obstacles only",
+    "The current planner configuration allows travel through unknown space",
+    "Real-vehicle deployment requires independent calibration, timing and safety validation"
   ]
 }

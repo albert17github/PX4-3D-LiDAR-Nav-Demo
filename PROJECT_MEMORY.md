@@ -4,9 +4,28 @@
 
 在 Ubuntu 24 桌面中实时显示 Gazebo 和 RViz，让 PX4 SITL 无人机使用三维 LiDAR + IMU 完成定位与 OctoMap 建图，调用开源 MRS 三维 A* 规划器获得固定 A→B 或 RViz 交互目标路径，再通过 MAVROS OFFBOARD 位置航点实际飞完整条路径并自动降落。交互模式作为后续演示技术底座，应在同一会话中支持多次选点，同时保持自写代码只承担薄编排和安全连接层。
 
+## Public GitHub landing and report — PASS (2026-08-06)
+
+- GitHub 首页 `README.md` 已改为面向首次访问者的项目说明，只保留功能、真实 Gazebo/RViz 图片、架构、安装、使用、参考结果、运行边界和贡献入口；移除了内部 run 编号、旧版本流水账、作者目录、工作记忆入口和本机 `127.0.0.1` 报告地址。
+- `reports/index.html` 保留 4 张 Gazebo/RViz 应用内导出图片和 HTML/CSS 标注，但文案改为具体的组件、动作与测量结果，去掉口号式标题、客户/用户归责语气和内部验收措辞。公开链接统一使用仓库相对路径、GitHub 源码地址或 GitHub Pages 地址。
+- 根目录 `index.html` 将 GitHub Pages 入口转到 `reports/`；公开目标 URL 为 `https://albert17github.github.io/PX4-3D-LiDAR-Nav-Demo/`。Open Graph、canonical 与页面图片 URL 均使用该公开地址，不再引用临时预览服务。
+- 新增 `CONTRIBUTING.md`、结构化 bug issue 表单和图片 `SHA256SUMS`；本地检查增加公开文档链接与本机地址扫描。`.gitattributes` 将根入口与报告 HTML 标为 `linguist-documentation`，使 GitHub 语言统计反映 Python/Shell 主实现而不是介绍页篇幅。曾准备的 GitHub Actions 文件因当前 OAuth token 没有 `workflow` scope 而未推送，未扩大账号权限。
+- 本地复验通过：全部 Shell `bash -n`/`shellcheck -x`、Python `py_compile`、`./setup.sh --verify-only`、HTML/JSON 解析、README/报告相对链接、公开文档本机地址扫描和 4 张 PNG 哈希。四张原图已再次以原始分辨率检查；Firefox 实际打开并检查了报告首页、场景区和参考结果区。
+- 本阶段未改 SLAM、OctoMap、规划、任务执行或 PX4 参数。唯一运行时脚本改动是把可选 seed copy 中的个人 home 排除路径泛化为 `/home/***`，默认安装和启动路径不受影响。
+
+## Recommended environment + software-native report — PASS (2026-08-06)
+
+- 复刻策略已从“自动兼容尽可能多的网络和 PRoot 边角情况”收敛为“只支持明确的推荐环境”。正式边界为 Ubuntu 24.04 LTS Desktop、Linux `x86_64`、Bash ≥ 5.2、Git ≥ 2.43、Python 3.12.x、至少 4 线程、guest 内至少 10 GiB RAM、首次安装至少 20 GiB 可用空间，以及可连接的 X11/XWayland `DISPLAY`；详细推荐值在 `docs/REPRODUCE.md`。
+- 新入口 `./scripts/check_environment.sh --setup|--run` 只做检查，不安装软件、不修改软件源、代理、DNS 或虚拟机设置。`--run` 额外核验 ROS 2 Jazzy、Gazebo Harmonic、关键 runtime 文件，以及 PX4 `v1.17.0`、DLIO、MAVROS `2.14.0` 的固定 commit。`scripts/start.sh` 在任何仿真进程启动前执行 `--run`。
+- `setup.sh` 不再提供 `--install-host-deps`。它按 6 个阶段输出环境检查、源码下载、rootfs、包安装、构建和最终核验；失败时固定显示阶段、日志绝对路径和重试命令，不再为不同客户网络自动切镜像或堆叠专项修复。上一轮尚未提交的 OSRF key/hash/index retry gate 已撤掉；已提交的 6 个 PX4 依赖、串行下载、超时重试和简单 HTTPS 修正保留。
+- 静态与负向检查已通过：`bash -n`、`shellcheck -x`、`git diff --check` 均为 PASS；`DISPLAY=` 的 `--run` 检查以 exit 10 在 desktop display 项明确失败；当前机 `./scripts/check_environment.sh --run` 与 `./setup.sh --verify-only` 均 PASS。
+- 重新冷启动 run `runs/20260806-001212-uVRmSE`，base run `runtime/runs/20260806-001217-nlQ1VC`。新增环境检查先 PASS，完整栈 `247 s` ready；固定 A→B 获得 9 点完整路径，路径长 `13.507 m`、cross-track `3.394 m`、障碍中心距 `3.129 m`、B 误差 `0.037 m`，随后 `AUTO.LAND`、`landed_disarmed`，mission verdict 为 PASS。
+- 该 run 停止后 demo/base active marker 和 PX4/Gazebo/RViz/DLIO/OctoMap/MAVROS 进程均为 0；但停止状态记录 `px4_lio_restore=SKIPPED_NOT_PROVEN_LANDED`，表示停止脚本当时未能再次证明 landed/disarmed，因而正确跳过恢复写参。下一次启动仍会先执行 boot profile 修复；不能把本轮描述为参数 restore evidence PASS。
+- `reports/index.html` 已重写为项目介绍页。4 张跟踪图片来自同一 run 的 Gazebo `Screenshot` plugin 或 RViz `File → Save Image` render panel，不含桌面、终端或浏览器；原图尺寸、语义、人工多模态检查和 SHA-256 在 `reports/assets/README.md`。Firefox 实际页面已打开检查，桌面版 hero、字体层级、图片、导航和注释正常；页面资源 HTTP 检查均为 200。
+
 ## Self-contained runtime + corrected geometry — 2-RUN PASS (2026-08-05)
 
-- 项目默认运行时已从兄弟项目迁入本 checkout 的 `runtime/`。`./setup.sh --install-host-deps` 是普通用户首次入口，`./setup.sh --verify-only` 核验 source commit、补丁、动态库闭包、Python 自测、apt manifest 与仿真几何合同；默认启动链不读取 `/home/albert/PX4-LiDAR-SLAM-Sim`、`RVPX4` 或其他兄弟目录。
+- 项目默认运行时已从兄弟项目迁入本 checkout 的 `runtime/`。当前首次入口是 `./scripts/check_environment.sh --setup` 后执行 `./setup.sh`；`./setup.sh --verify-only` 核验 source commit、补丁、动态库闭包、Python 自测、apt manifest 与仿真几何合同；默认启动链不读取 `/home/albert/PX4-LiDAR-SLAM-Sim`、`RVPX4` 或其他兄弟目录。
 - 私有 GitHub feature branch 的全新 clone 已从零执行到 Gazebo/Harmonic 依赖解析阶段，期间真实发现并修复 PRoot 下 `apt-key` 对新 keyring 的可读性误判。仓库现在跟踪 ROS 官方公钥并固定 fingerprint `C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654`；安装时先用 `gpgv` 验证签名 `InRelease`，apt 再通过 `Signed-By` 复验，不使用 `Trusted: yes` 或跳过证书检查。为避免再生成一套约 `14 GiB` 的重复环境，该干净副本在越过故障点、进入 730 个 Gazebo 包下载后按用户要求停止并移入回收站；不能把它记作完整 clean-install PASS。当前主 checkout 的完整 runtime 核验与下面两轮端到端飞行 PASS 不受影响。
 - Git 只跟踪安装配方、版本锁、补丁、模型、world 与脚本；约 `14 GiB` 的 rootfs、源码 checkout、build、overlay、日志和 run 都由 setup 生成并在 `.gitignore` 排除。`runtime/config/versions.env` 固定 Ubuntu Noble WSL rootfs URL/SHA、PRoot SHA、PX4 `v1.17.0` commit `d6f12ad1`、DLIO commit `c8acc371`、MAVROS `2.14.0` commit `c655e634` 与所有补丁 SHA。
 - 迁移不复制旧 run、报告或 ULog；当前 runtime 中三套源码 checkout 都有官方 origin、无 Git alternates，也没有指向兄弟项目的 symlink。`--seed-from` 只保留为显式的本机迁移加速选项，普通用户不需要。
@@ -169,6 +188,9 @@ cd /home/albert/PX4-3D-LiDAR-Nav-Demo
 静态复验：
 
 ```bash
+./scripts/check_environment.sh --setup
+./scripts/check_environment.sh --run
+./setup.sh --verify-only
 python3 -m py_compile src/ab_mission.py
 source scripts/common.sh
 native_ros python3 src/ab_mission.py --self-test
@@ -190,6 +212,7 @@ sha256sum -c sha256.txt
 - `config/demo.yaml`：A/B、交互目标、几何验收、速度、warmup 与规划重试合同。
 - `config/planner.yaml`：MRS planner 参数。
 - `reports/index.html`、`reports/status.json`、`reports/guided-experiment-20260803.json`：最终逐步网页报告、状态和机器摘要。
+- `reports/assets/`：Gazebo/RViz 软件内部导出的介绍页原图、来源说明与 SHA-256。
 - `runs/20260803-120927-6lYpVn/evidence/`、`runs/20260803-122744-TgKS1c/evidence/`：两套最终独立证据。
 - `runs/20260803-142437-0S5Hkc/evidence/`、`runs/20260803-144745-8J6JGv/evidence/`：本次逐步复现实验的安全拒绝与任务 PASS 证据。
 - `runs/20260804-172738-8jPZ9i/evidence/`：RViz 交互选点 PASS 的视频、截图、地图、任务 JSON 与哈希。
@@ -207,6 +230,7 @@ sha256sum -c sha256.txt
 - `NAV_DLL_ACT=0` 只适用于这个没有 GCS 的 PX4 SITL 演示；迁移实机时必须重新设计 GCS/RC data-link-loss action，不得照搬。
 - 真机必须在解锁前建立唯一且连续的 yaw 权限：有可用磁航向时只允许它完成初始化，无磁航向时必须等待 LIO yaw 就绪；本项目不允许在飞行中切换磁航向与 LIO yaw。
 - 本轮一次 `battery_simulator` work item 停止发布、但仍显示 running，PX4 正确以 `Battery unhealthy` 拒绝再次解锁；这是待单独定位的 SITL 生命周期问题，不能通过关闭真机电池健康门规避。
+- 2026-08-06 页面取图验证 run 的任务已 landed/disarmed、停止后无残留进程，但 stop 状态为 `px4_lio_restore=SKIPPED_NOT_PROVEN_LANDED`；停止脚本按 fail-closed 规则没有恢复写参，下一次启动由既有 boot profile 修复。本轮不把参数 restore 记为 PASS。
 - 用户失败 run `/home/albert/PX4-LiDAR-SLAM-Sim/runtime/runs/20260804-190430-Li1Gq0` 证明 QGC 的 `255.190` 流量触发 MAVROS 在 `MAV_CMD 520` 后 `double free or corruption`，导致 `/mavros/odometry/out` 只有 relay publisher、没有 MAVROS subscriber；原残留 DLIO/relay 已按记录身份 force-cleanup，证据保留。
 - 首次 no-QGC flight run `runs/20260804-191913-jd7EDM` 证明基础栈、DLIO relay 和建图均 PASS，但 x500 默认 `NAV_DLL_ACT=2` 导致 arm 被拒；该失败证据原样保留，后续正式 run 通过官方参数 `0` 完整闭环。
 - 2026-08-04 验证期间一次长航程交互任务在 waypoint 4 被既有 watchdog fail-closed 并安全降落；保留 run `20260804-165441-3R7iBU`。后续错误已改为输出 connected/armed/mode/state age/odom age 明细，未放宽阈值。

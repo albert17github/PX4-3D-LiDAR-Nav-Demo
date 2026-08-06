@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/common.sh
 source "$SCRIPT_DIR/common.sh"
 
+"$SCRIPT_DIR/check_environment.sh" --run
 require_runtime
 startup_health_mode=readiness
 if [[ -n "${PX4_DEMO_STARTUP_HEALTH_MODE:-}" &&

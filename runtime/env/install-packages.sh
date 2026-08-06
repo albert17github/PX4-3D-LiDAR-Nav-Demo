@@ -54,7 +54,34 @@ curl -fsSL --retry 5 --retry-all-errors \
 gpgv --keyring /usr/share/keyrings/ros2-archive-keyring.gpg /tmp/ros2-InRelease
 install -m 0644 /project/env/apt/ros2-proot.sources /usr/share/ros-apt-source/ros2.sources
 
-RUNS_IN_DOCKER=true /project/vendor/PX4-Autopilot/Tools/setup/ubuntu.sh --no-nuttx
+PX4_SETUP_SOURCE=/project/vendor/PX4-Autopilot/Tools/setup
+PX4_SETUP_TEMP="$(mktemp -d /tmp/px4-setup.XXXXXX)"
+cleanup_px4_setup_temp() {
+  rm -rf -- "$PX4_SETUP_TEMP"
+}
+trap cleanup_px4_setup_temp EXIT
+install -m 0755 "$PX4_SETUP_SOURCE/ubuntu.sh" "$PX4_SETUP_TEMP/ubuntu.sh"
+install -m 0644 "$PX4_SETUP_SOURCE/requirements.txt" "$PX4_SETUP_TEMP/requirements.txt"
+# The pinned PX4 installer still writes the OSRF package repository with HTTP. Some
+# networks reject port 80 even though the same signed repository is available
+# over HTTPS.  Patch only an ephemeral installer copy so the pinned PX4 source
+# tree remains pristine and source verification stays meaningful.
+grep -Fq 'http://packages.osrfoundation.org' "$PX4_SETUP_TEMP/ubuntu.sh" || {
+  echo "PX4 setup no longer contains the expected OSRF HTTP URL" >&2
+  exit 1
+}
+sed -i 's#http://packages\.osrfoundation\.org#https://packages.osrfoundation.org#g' \
+  "$PX4_SETUP_TEMP/ubuntu.sh"
+if grep -Fq 'http://packages.osrfoundation.org' "$PX4_SETUP_TEMP/ubuntu.sh"; then
+  echo "Failed to replace the OSRF HTTP repository URL" >&2
+  exit 1
+fi
+(
+  cd "$PX4_SETUP_TEMP"
+  RUNS_IN_DOCKER=true ./ubuntu.sh --no-nuttx
+)
+cleanup_px4_setup_temp
+trap - EXIT
 apt-get -o Acquire::Retries=5 update
 apt-get install -y --no-install-recommends \
   ffmpeg \

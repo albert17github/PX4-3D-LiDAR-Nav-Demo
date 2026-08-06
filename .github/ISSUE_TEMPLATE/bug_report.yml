@@ -1,0 +1,57 @@
+name: Bug 报告
+description: 报告可复现的安装、启动、建图、规划或飞行问题
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前请从日志中删除密钥、账号和私有地址。
+  - type: input
+    id: commit
+    attributes:
+      label: Commit
+      description: `git rev-parse HEAD` 的输出
+      placeholder: 40 位 commit SHA
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 运行环境
+      description: Ubuntu 版本、CPU、内存、GPU 或虚拟机配置，以及环境检查输出
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤
+      description: 能稳定触发问题的最短步骤
+      placeholder: |
+        1. 运行 ...
+        2. 等待 ...
+        3. 观察到 ...
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: 首个错误与日志
+      description: 包含失败命令、首个错误以及对应的 runtime/logs 路径
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: 提交前检查
+      options:
+        - label: 我已删除密码、token、cookie、私钥和私有地址。
+          required: true
+        - label: 我已搜索现有 issue，并能在当前分支复现此问题。
+          required: true

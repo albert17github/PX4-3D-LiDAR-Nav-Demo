@@ -1,168 +1,163 @@
-# PX4 3D LiDAR A→B Navigation Demo
+# PX4 3D LiDAR Navigation Demo
 
-[Apache-2.0](LICENSE) · [GitHub](https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo)
+一个可复刻、可实时观察的无人机三维导航仿真：PX4 SITL 在 Gazebo 中接收
+3D LiDAR 与 IMU 数据，通过 DLIO 定位、OctoMap 建图、MRS 三维 A* 规划，
+最后由 MAVROS OFFBOARD 执行路径并自动降落。
 
-这是一个刻意保持简洁的实时图形化仿真项目。它不实现新的 SLAM 或规划算法，只把成熟开源组件连接成闭环：
+<p align="center">
+  <a href="https://albert17github.github.io/PX4-3D-LiDAR-Nav-Demo/">在线项目报告</a>
+  · <a href="docs/REPRODUCE.md">安装与复刻</a>
+  · <a href="docs/ARCHITECTURE.md">系统架构</a>
+  · <a href="CONTRIBUTING.md">参与贡献</a>
+  · <a href="LICENSE">Apache-2.0</a>
+</p>
 
-```text
-PX4 SITL + Gazebo 3D LiDAR
-              ↓ point cloud + IMU
-             DLIO
-              ├── position + body velocity + yaw → MAVROS → PX4 EKF2
-              └── pose + cloud → OctoMap
-                                   ↓
-                         MRS 3D A* planner
-                                   ↓ waypoints
-                         MAVROS OFFBOARD → PX4
+<p align="center">
+  <img src="reports/assets/rviz-flight-path.png" width="900" alt="RViz 中的三维 LiDAR 点云、OctoMap、起点、目标点和绿色规划路径">
+</p>
+
+<p align="center"><sub>RViz 软件内导出：在线 OctoMap 与实际执行的三维绕障路径</sub></p>
+
+## 功能
+
+- Gazebo 和 RViz 在 Ubuntu 桌面实时显示，不依赖离线回放。
+- 固定 A→B 演示从 `(0, 0, 2.2)` 飞向 `(7, 7, 2.2)`，直线路径被障碍阻断。
+- 交互模式支持在 RViz 中连续选择目标，每次落地后无需重启完整仿真。
+- 路径不完整、净距不足、里程计过期或 OFFBOARD 状态异常时停止任务并尝试降落。
+- 每次运行保存任务结果、截图、视频、OctoMap 和 SHA-256 清单。
+- PX4、DLIO、MAVROS 与下载内容均由版本锁或哈希约束，运行时生成在当前 checkout 内。
+
+本仓库不重新实现 SLAM、OctoMap、路径规划或飞控算法。项目代码只负责启动编排、
+目标接收、数据连接、路径检查、航点平滑和结果保存。
+
+## 运行画面
+
+| Gazebo 障碍世界 | RViz 在线三维地图 |
+|---|---|
+| ![Gazebo 中的静态三维障碍世界](reports/assets/gazebo-world-ready.png) | ![RViz 中的实时 3D LiDAR 与 OctoMap](reports/assets/rviz-map-ready.png) |
+| **RViz 规划路径** | **到达目标并落地** |
+| ![RViz 中的三维 A 星路径](reports/assets/rviz-flight-path.png) | ![Gazebo 中在目标点落地的 x500](reports/assets/gazebo-landed-b.png) |
+
+四张图片均由 Gazebo `Screenshot` plugin 或 RViz `File → Save Image` 导出，
+没有使用桌面全屏截图。尺寸、来源和 SHA-256 见
+[图片说明](reports/assets/README.md)。
+
+## 系统架构
+
+```mermaid
+flowchart LR
+  G["PX4 SITL + Gazebo<br/>IMU · 3D LiDAR"] -->|PointCloud + IMU| D["DLIO<br/>LiDAR-inertial odometry"]
+  D -->|Pose + cloud| O["OctoMap<br/>3D occupancy map"]
+  D -->|Position + velocity + yaw| M["MAVROS + PX4 EKF2"]
+  O --> P["MRS MinimalOctomapPlanner<br/>3D A*"]
+  P --> S["Path checks + smoothing"]
+  S -->|OFFBOARD setpoints| M
+  M --> G
 ```
 
-## 最终演示
-
-- Ubuntu 桌面实时显示 Gazebo 仿真世界。
-- RViz 实时显示 3D LiDAR、OctoMap、PX4 位姿、A/B 与规划路径。
-- 默认从 A `(0,0,2.2)` 飞到 B `(7,7,2.2)`。
-- A-B 直线穿过 `map=(3.5,3.5)` 的圆柱障碍，规划器必须给出非直线绕行路径。
-- 无人机实际沿路径飞行，到达 B 后自动降落。
-- 交互模式每次落地后继续等待下一次 RViz 选点，不重启整套仿真。
-- 每次运行保存截图、视频、地图和简短 JSON 结果。
-
-## 复用而非重写
-
-| 功能 | 开源组件 |
+| 环节 | 组件 |
 |---|---|
-| 飞控与状态估计 | PX4 v1.17 SITL / EKF2 |
-| 物理与传感器 | Gazebo Sim / 3D LiDAR |
-| 激光惯性里程计 | DLIO |
-| 飞控通信 | MAVROS |
-| 三维地图 | ROS 2 OctoMap server |
-| 三维路径规划 | MRS MinimalOctomapPlanner / A* |
+| 飞控与状态估计 | PX4 v1.17.0 SITL / EKF2 |
+| 物理与传感器 | Gazebo Harmonic / 3D LiDAR |
+| 激光惯性里程计 | Direct LiDAR-Inertial Odometry（DLIO） |
+| 三维地图 | ROS 2 Jazzy / OctoMap server |
+| 三维规划 | MRS MinimalOctomapPlanner / A* |
+| PX4 通信与执行 | MAVROS 2.14.0 / OFFBOARD |
 | 可视化 | RViz |
 
-项目自写部分只负责启动编排、目标接收、安全校验、平滑发送位置航点和保存证据。
+## 系统要求
 
-## 首次安装与复刻
+当前支持 Ubuntu 24.04 LTS Desktop `x86_64`。推荐配置为 8 个逻辑 CPU、
+12 GiB RAM、4 GiB swap 和 30 GiB 可用磁盘；最低资源与宿主机软件包见
+[安装与复刻说明](docs/REPRODUCE.md)。虚拟机需要可用的 X11/XWayland 显示，
+并建议启用 3D acceleration。
 
-仓库不提交数 GB 的 Ubuntu、ROS、PX4 和编译产物，而是提交版本锁、补丁、
-模型、世界和安装配方。克隆后只需先安装一次项目内运行时：
+## 快速开始
 
 ```bash
 git clone https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo.git
 cd PX4-3D-LiDAR-Nav-Demo
-./setup.sh --install-host-deps
+
+./scripts/check_environment.sh --setup
+./setup.sh
 ./demo.sh --interactive
 ```
 
-如果宿主机已经有 `Xephyr`、`xdotool` 等小型桌面工具，第三行可改为
-`./setup.sh`，不需要 `sudo`。所有下载源码、rootfs 和构建产物都生成在当前
-仓库的 `runtime/` 下；默认启动不读取 `/home/albert` 下的任何兄弟项目。
-安装可重复执行，完成后也可用 `./setup.sh --verify-only` 只做完整性核验。
-版本、下载内容和故障恢复见 [docs/REPRODUCE.md](docs/REPRODUCE.md)。
+首次 `setup.sh` 会下载固定的上游源码、Ubuntu rootfs 与签名软件包，并在
+`runtime/` 中构建约 14 GiB 的项目运行时。安装可以重复执行，已完成且通过
+校验的步骤会被复用。
 
-本仓库为 public，任何用户都可以直接 clone。首次安装会下载固定版本的上游源码和
-签名软件包，不需要本机存在作者的其他项目。
+环境检查不会修改代理、DNS、软件源或虚拟机设置。某一步失败时，终端会显示
+阶段、退出码和日志路径；修复环境或网络后重新运行 `./setup.sh` 即可。
 
-## 运行
+## 使用方式
 
-主入口固定为：
+固定 A→B 任务：
 
 ```bash
-cd PX4-3D-LiDAR-Nav-Demo
 ./demo.sh
 ```
 
-脚本会重新冷启动完整栈，通过健康门后才允许 `OFFBOARD` 与 arm；规划路径不完整或净距不足时会在 A 悬停有界重试，全部失败则自动安全降落。成功运行会在新的 `runs/<timestamp>/evidence/` 中保存 JSON、截图、H.264 视频、`.bt` 地图和 SHA-256 清单。
-
-默认冷启动使用主线 `readiness` 模式，逐项验证 Gazebo/LiDAR、MAVROS、
-landed/disarmed、DLIO、PX4 EKF2 external position 融合、TF 与非空
-OctoMap；随后主入口再切换并核验 external position/velocity/yaw 三项持续融合。
-旧基线的多层审计框架不再进入本项目启动链。
-
-本项目不需要 QGroundControl。启动期间由 MAVROS 连接 PX4，终端会持续显示每个组件和 readiness gate 的进度；如果桌面上已有 QGroundControl，入口会直接提示关闭，避免其 MAVLink GCS 流量进入本演示。PX4 的 SITL-only 合同在 landed/disarmed 状态下验证并固定 `NAV_DLL_ACT=0`，不会因此关闭其他定位、OFFBOARD 或 arming health checks。
-
-RViz 交互选点模式：
+RViz 连续选点：
 
 ```bash
 ./demo.sh --interactive
 ```
 
-等待终端显示 `waiting_for_interactive_goal`，然后在 RViz 顶部选择 `2D Goal Pose`，在地图上按住鼠标并拖出箭头。点击位置提供目标 X/Y，飞行高度固定为 `2.2 m`，箭头方向作为整次任务的固定机头朝向。机体先保持当前航向垂直起飞，到达高度后再按最短角度、最多 `45°/s` 原地转向，不再跟随每个规划折点反复旋转。
+等待终端显示 `waiting_for_interactive_goal`，在 RViz 中选择 `2D Goal Pose`，
+点击目标位置并拖动设置机头方向。飞行器到达目标并自动降落后，会继续等待下一目标。
+完成后在启动终端按 `Ctrl+C`，停止脚本会保存结果并关闭受管进程。
 
-路径通过在线 OctoMap 规划和安全校验后才会进入 OFFBOARD。到达后自动降落，但程序、Gazebo、RViz、DLIO 和地图都不会退出；终端重新显示 `waiting_for_interactive_goal` 后可以继续选下一个点。下一次规划从飞机的实际落地点开始。等待会持续到用户停止，配置中的 30 分钟只作为周期性等待提示，不会关闭窗口。完成全部尝试后在原终端按一次 `Ctrl+C`。
-
-分步入口同样支持交互：
+也可以分步运行：
 
 ```bash
 ./scripts/start.sh
 ./scripts/fly_ab.sh --interactive
-# 完成多次尝试后按 Ctrl+C 结束 fly_ab.sh
 ./scripts/stop.sh
 ```
 
-## 已验证结果
+## 参考验证结果
 
-2026-08-05 自包含运行时与几何合同完成两次独立 PASS：默认入口只使用当前
-checkout 的 `runtime/`，不再读取兄弟项目；PX4 `v1.17.0`、DLIO、MAVROS
-`2.14.0`、Ubuntu rootfs、补丁与下载哈希均有机器版本锁。仿真保留非零初始
-航向 `0.55 rad`，并把圆柱 world 位姿严格变换为 DLIO `map=(3.5,3.5)`，使其
-真正位于 A→B 中线。正式 run `20260805-182916-btMc4A` 与
-`20260805-183516-xIDcJr` 分别获得 9/7 点完整路径，路径长
-`12.886/12.724 m`、横向绕行均为 `3.111 m`、圆柱中心距离
-`2.961/2.927 m`，B 点误差 `0.024/0.037 m`；两轮均自动降落、哈希全通过、
-clean stop 且残留进程为零。冷启动总计 `235/237 s`，比此前已优化的
-`287 s` 再缩短约 `17%..18%`。
+以下数据来自 Ubuntu 24.04 虚拟机中的一次完整冷启动、在线建图、规划、执行和落地：
 
-上述新版本也修复了两个启动/运行时边界：航点到达临界时保留 odometry
-watchdog 并增加合理 settle 余量；MAVROS 使用固定上游版本加官方后续
-vehicles/router 锁补丁，MRS component discovery 则采用有界重试。没有更换
-DLIO、OctoMap、A* 或 PX4 算法，也没有降低安全阈值。
+| 指标 | 结果 | 验收边界 |
+|---|---:|---:|
+| 路径点 | 9 | 完整路径 |
+| 路径长度 | 13.507 m | 大于直线距离 |
+| 最大横向绕行 | 3.394 m | ≥ 0.55 m |
+| 障碍中心最小距离 | 3.129 m | ≥ 1.35 m |
+| 目标位置误差 | 0.037 m | ≤ 0.40 m |
+| 最终状态 | `AUTO.LAND` / disarmed | 自动降落并解除解锁 |
 
-> 坐标口径说明：2026-08-03/04 的历史报告曾把未旋转的 world 差值
-> `(3.5,3.5)` 直接写成 DLIO `map` 坐标；那些旧中心距数字只保留为历史记录，
-> 不再作为当前几何验收依据。当前版本由
-> `scripts/check_simulation_contract.py` 自动核对 SDF、初始航向与任务配置。
+这些数值用于说明参考环境已经完成闭环，不代表不同硬件、图形驱动或网络环境下的
+性能保证。完整视觉说明见[在线项目报告](https://albert17github.github.io/PX4-3D-LiDAR-Nav-Demo/)。
 
-2026-08-05 LIO yaw authority run `20260805-151557-Otlbug` PASS：PX4 在飞行阶段实测 `EKF2_EV_CTRL=13`，DLIO 同时约束 horizontal position、body velocity 和 yaw；磁航向仅用于启动初始化，飞行中 `cs_mag_hdg/cs_mag_3d=False`。同一个 PX4/EKF2/DLIO 实例连续完成 4 次飞行和自动降落，最远目标半径 `10.296 m`，目标误差均为 `0.028..0.051 m`。4 份 ULog 中 EV 三项 fusion 全程有效、三类 innovation 零拒绝、飞行中 heading/quaternion reset 增量为 0、dropout 为 0；以一套固定 SE(2) 对齐 Gazebo 真值后的最大位置/yaw 残差为 `0.128 m / 3.04°`。完整摘要见 `runs/20260805-151557-Otlbug/evidence/lio-yaw-ulog-summary.json`。
+## 输出文件
 
-2026-08-05 冷启动优化 run `20260805-113113-Yd1sN7` PASS：虚拟机异常重启后的 stale marker 已由现有停止脚本封存；新的 base readiness 用时 `263 s`，完整入口到 RViz `waiting_for_interactive_goal` 用时 `287 s`，此前四次成功启动为 `655..784 s`，约快 `56%..63%`。Gazebo/RViz 同屏截图、在线 `0.4 m` OctoMap（`1622` occupied centers）、MAVROS connected、`map` odom 和 MRS planner service 均已现场核验；本轮只启动并等待选点，没有自动触发飞行。
+每次运行创建独立的 `runs/<timestamp>/` 目录，主要结果位于 `evidence/`：
 
-2026-08-04 持久多目标 run `20260804-202200-Hs10L6` PASS：同一次 Gazebo/RViz/PX4/DLIO/OctoMap 会话先从实际起点 `(-0.001,-0.001)` 飞到 `(5,0)`，落地后没有退出；随后从第一次实际落地点 `(5.035,0.015)` 重新规划飞回 `(0,0)`。两次目标误差分别为 `0.072 m`、`0.325 m`，均经历完整路径、`AUTO.LAND`、landed/disarmed，并分别保存为 `mission-result-001.json`、`mission-result-002.json`。第二次落地后仍重新进入选点等待，最终由 `Ctrl+C` 干净停止。
+- `mission-result.json`：路径指标、任务事件和最终误差；
+- `rviz-ab-demo.mp4`：RViz 运行视频；
+- PNG：Gazebo、RViz 与最终状态图片；
+- `final-octomap.bt`：最终 OctoMap；
+- `sha256.txt`：证据文件哈希。
 
-2026-08-04 稳定朝向 run `20260804-203906-n9Br4K` PASS：RViz 目标 `(5,0,2.2)` 的箭头设为 `+90°`，规划路径含 5 点和多个折点。起飞完成后的 186 个实际 yaw 样本中，setpoint 全程变化 `0.000°`，实际机头范围 `87.96°..91.53°`，平均误差 `0.27°`、最大误差 `2.04°`；目标误差 `0.104 m`，随后自动降落并继续等待下一目标。完整 evidence 的 SHA-256 已复验通过。
+运行目录由 `.gitignore` 排除，不会被意外提交到仓库。
 
-2026-08-04 无 QGC 冷启动和完整交互飞行已 PASS：run `20260804-193505-kEjVgs`、base run `20260804-193509-QGEVqW`。启动时 `NAV_DLL_ACT` 从 x500 默认值 `2` 读回并固定为 `0`；RViz 目标 `(5,0,2.2)` 得到 5 点 complete path，路径长 `6.183 m`、圆柱中心最小距离 `3.625 m`，实际到达误差 `0.070 m`，随后 `AUTO.LAND`、landed/disarmed。82.375 秒视频、截图、地图、JSON、参数 readback 和 SHA-256 全部通过；底层 shutdown clean，QGC/受管进程/active marker 均为零。
+## 适用范围
 
-2026-08-04 已完成一次 `./demo.sh --interactive`：RViz 选择目标 `(5,0,2.2)`，MRS 返回 4 点 complete path，路径长 `5.921 m`、圆柱中心最小距离 `3.405 m`，PX4 实际到达目标，误差 `0.105 m`，随后 `AUTO.LAND`、landed/disarmed。run 为 `20260804-172738-8jPZ9i`，视频、截图、地图、JSON 和 SHA-256 全部通过，底层 shutdown clean。
+- 当前场景只验证静态障碍绕行，不包含动态障碍预测或自主探索。
+- 当前规划配置允许穿越未知空间，仅适用于受控仿真演示。
+- 本项目是 SITL 研究演示，不是飞行认证软件，也不能直接作为真实无人机安全策略。
+- 迁移到实机前必须重新处理传感器标定、时钟同步、坐标系、通信时延、失联策略和安全边界。
 
-2026-08-03 已连续完成两次独立 `./demo.sh`：
+## 文档与贡献
 
-| run | 障碍中心最小距离 | B 点误差 | 结束状态 |
-|---|---:|---:|---|
-| `20260803-120927-6lYpVn` | `2.828 m` | `0.0915 m` | `AUTO.LAND`，landed/disarmed |
-| `20260803-122744-TgKS1c` | `2.546 m` | `0.2581 m` | `AUTO.LAND`，landed/disarmed |
+- [安装与复刻](docs/REPRODUCE.md)
+- [系统架构与航向权限](docs/ARCHITECTURE.md)
+- [参与贡献](CONTRIBUTING.md)
+- [第三方组件与许可证](THIRD_PARTY_NOTICES.md)
+- [Apache License 2.0](LICENSE)
 
-合同要求分别为 `≥1.35 m` 与 `≤0.4 m`。两次 run 的底层 health、Gazebo/RViz 可见性、PointCloud2、在线 OctoMap、PX4 uORB 外部水平位置融合、视频、地图和哈希均已复核。
-
-同日又按报告步骤完整复现：`20260803-142437-0S5Hkc` 连续拒绝 5 条 incomplete path 后安全降落；新的独立 run `20260803-144745-8J6JGv` 获得 7 点完整路径，中心距离 `2.546 m`，实际到 B 误差 `0.2575 m`，随后 landed/disarmed。第二轮任务与证据哈希 PASS，但 Gazebo GUI teardown 记录 Segmentation fault，所以报告单独保留 shutdown WARN，不能称为 clean shutdown。
-
-浏览器报告：<http://127.0.0.1:8770/reports/index.html>
-
-## 版本切换
-
-- 初始基线：commit `1f535b2`，tag `v0.1.0-initial`。
-- LIO yaw 修复：tag `v0.2.0-lio-yaw`，后续修改从此版本继续叠加。
-- 自包含运行时、正确几何合同与两次独立 PASS：tag `v0.3.0-self-contained`。
-- 公开开源发布与 Apache-2.0：tag `v0.3.1`。
-- 公开仓库：<https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo>。
-
-## 许可证
-
-本项目自写的启动编排、任务连接层、配置和文档使用
-[Apache License 2.0](LICENSE)。由安装脚本取得的 PX4、Gazebo、ROS 2、DLIO、
-MAVROS、OctoMap、MRS、PRoot 和 Ubuntu 内容，以及 `runtime/patches/` 中源自
-上游代码的补丁，继续遵守各自原许可证；详见
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
-
-详细当前状态和一键复核命令见 [PROJECT_MEMORY.md](PROJECT_MEMORY.md)，静态报告源文件见 [reports/index.html](reports/index.html)。
-
-详细的逐阶段实施、验收条件和小模型分工见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)。
-日期备份位于 [docs/backups/IMPLEMENTATION_PLAN-20260801.md](docs/backups/IMPLEMENTATION_PLAN-20260801.md)。
+提交 issue 或 pull request 前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。改动应
+保持“连接成熟组件、不重写上游算法”的项目边界。
