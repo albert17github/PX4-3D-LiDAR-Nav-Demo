@@ -16,8 +16,6 @@
   <img src="reports/assets/rviz-flight-path.png" width="900" alt="RViz 中的三维 LiDAR 点云、OctoMap、起点、目标点和绿色规划路径">
 </p>
 
-<p align="center"><sub>RViz 软件内导出：调整观察角度后的在线 OctoMap 与实际三维绕障路径</sub></p>
-
 ## 功能
 
 - Gazebo 和 RViz 在 Ubuntu 桌面实时显示，不依赖离线回放。
@@ -38,9 +36,8 @@
 | **RViz 规划路径** | **到达目标并落地** |
 | ![RViz 中的三维 A 星路径](reports/assets/rviz-flight-path.png) | ![Gazebo 中在目标点落地的 x500](reports/assets/gazebo-landed-b.png) |
 
-四张图片均由 Gazebo `Screenshot` plugin 或 RViz `File → Save Image` 导出，
-没有使用桌面全屏截图。尺寸、来源和 SHA-256 见
-[图片说明](reports/assets/README.md)。
+四个场景依次展示物理仿真、在线三维地图、绕障路径和目标点落地。
+原图尺寸、来源和 SHA-256 见[图片说明](reports/assets/README.md)。
 
 ## 系统架构
 
@@ -120,13 +117,13 @@ RViz 连续选点：
 
 以下数据来自 Ubuntu 24.04 虚拟机中的一次完整冷启动、在线建图、规划、执行和落地：
 
-| 指标 | 结果 | 验收边界 |
+| 指标 | 参考结果 | 项目边界 |
 |---|---:|---:|
-| 路径点 | 9 | 完整路径 |
-| 路径长度 | 13.507 m | 大于直线距离 |
-| 最大横向绕行 | 3.394 m | ≥ 0.55 m |
-| 障碍中心最小距离 | 3.129 m | ≥ 1.35 m |
-| 目标位置误差 | 0.037 m | ≤ 0.40 m |
+| 路径点 | 8 | 完整路径 |
+| 路径长度 | 12.753 m | 大于直线距离 |
+| 最大横向绕行 | 3.111 m | ≥ 0.55 m |
+| 障碍中心最小距离 | 2.856 m | ≥ 1.35 m |
+| 目标位置误差 | 0.040 m | ≤ 0.40 m |
 | 最终状态 | `AUTO.LAND` / disarmed | 自动降落并解除解锁 |
 
 这些数值用于说明参考环境已经完成闭环，不代表不同硬件、图形驱动或网络环境下的

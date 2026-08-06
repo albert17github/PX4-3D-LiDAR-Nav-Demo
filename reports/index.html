@@ -106,7 +106,7 @@
     .route-stamp b { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--cyan); font: 800 13px var(--mono); }
     .route-stamp b:last-child { justify-self: end; background: var(--red); }
     .route-line { position: relative; height: 2px; background: repeating-linear-gradient(90deg, #6a7c83 0 7px, transparent 7px 13px); }
-    .route-line::after { content: "13.507 m · 9 points · AUTO.LAND"; position: absolute; right: 0; bottom: 10px; color: #b8c7ca; font: 650 10px var(--mono); }
+    .route-line::after { content: "12.753 m · 8 points · AUTO.LAND"; position: absolute; right: 0; bottom: 10px; color: #b8c7ca; font: 650 10px var(--mono); }
 
     .section { margin-top: 92px; scroll-margin-top: 20px; }
     .section-head { display: grid; grid-template-columns: minmax(0, .75fr) minmax(360px, .45fr); gap: 38px; align-items: end; padding-bottom: 17px; border-bottom: 1px solid var(--ink); }
@@ -114,16 +114,13 @@
     h2 { margin: 0; font-family: var(--display); font-size: clamp(33px, 4.3vw, 54px); line-height: 1; letter-spacing: -.045em; }
     .section-head p { margin: 0; color: var(--muted); line-height: 1.75; }
 
-    .sequence { position: relative; display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; margin-top: 35px; }
-    .sequence::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: linear-gradient(var(--cyan), var(--blue), var(--amber), var(--red)); opacity: .5; }
-    .scene { position: relative; z-index: 1; background: var(--paper); border: 1px solid var(--line); box-shadow: 0 14px 35px rgba(19, 32, 40, .08); }
-    .scene:nth-child(1), .scene:nth-child(3) { grid-column: 1 / span 7; }
-    .scene:nth-child(2), .scene:nth-child(4) { grid-column: 6 / span 7; }
-    .scene-media { position: relative; overflow: hidden; background: var(--night); }
-    .scene-media img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
-    .scene--rviz .scene-media img { object-position: center; }
+    .sequence { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 35px; }
+    .scene { display: flex; flex-direction: column; min-width: 0; background: var(--paper); border: 1px solid var(--line); box-shadow: 0 14px 35px rgba(19, 32, 40, .08); }
+    .scene-media { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: var(--night); }
+    .scene-media img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+    .scene--rviz .scene-media img { object-position: 50% 48%; }
     .scene--drone .scene-media img { object-position: 52% 44%; }
-    .scene-copy { display: grid; grid-template-columns: 68px 1fr; gap: 18px; padding: 20px 22px 23px; }
+    .scene-copy { display: grid; grid-template-columns: 68px 1fr; gap: 18px; flex: 1; padding: 20px 22px 23px; }
     .scene-index { display: grid; place-items: center; width: 54px; height: 54px; color: #fff; background: var(--night); font: 800 12px var(--mono); }
     .scene h3 { margin: 0; font-size: 23px; line-height: 1.2; }
     .scene p { margin: 8px 0 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
@@ -234,9 +231,7 @@
       .route-stamp { grid-template-columns: 52px 1fr 52px; }
       .route-line::after { font-size: 8px; }
       .section { margin-top: 66px; }
-      .sequence { display: block; }
-      .sequence::before { display: none; }
-      .scene { margin-top: 17px; }
+      .sequence { grid-template-columns: 1fr; gap: 17px; }
       .scene-copy { grid-template-columns: 50px 1fr; }
       .scene-index { width: 43px; height: 43px; }
       .pin::after { display: none; }
@@ -255,7 +250,7 @@
   <header class="shell topbar">
     <a class="brand" href="#overview">PX4 / 3D LiDAR / A→B</a>
     <nav aria-label="页面导航">
-      <a href="#views">真实画面</a>
+      <a href="#views">运行画面</a>
       <a href="#route">技术路线</a>
       <a href="#environment">推荐环境</a>
       <a href="#reproduce">复刻</a>
@@ -274,17 +269,17 @@
         </p>
         <div class="hero-command"><span>$</span> ./demo.sh --interactive</div>
         <dl class="hero-metrics">
-          <div><dt>目标误差</dt><dd>0.037 m</dd><small>要求 ≤ 0.4 m</small></div>
-          <div><dt>路径长度</dt><dd>13.507 m</dd><small>9 个可执行点</small></div>
-          <div><dt>障碍中心距</dt><dd>3.129 m</dd><small>要求 ≥ 1.35 m</small></div>
+          <div><dt>目标误差</dt><dd>0.040 m</dd><small>项目边界 ≤ 0.4 m</small></div>
+          <div><dt>路径长度</dt><dd>12.753 m</dd><small>8 个可执行点</small></div>
+          <div><dt>障碍中心距</dt><dd>2.856 m</dd><small>项目边界 ≥ 1.35 m</small></div>
         </dl>
       </div>
       <figure class="hero-visual">
         <img src="assets/rviz-flight-path.png" alt="RViz 应用内导出的三维点云、OctoMap、绿色规划路径、起点和目标点" fetchpriority="high">
-        <span class="source-chip">RViz Save Image · 900×708</span>
+        <span class="source-chip">RViz · LiDAR / OctoMap / Planned path</span>
         <figcaption class="hero-caption">
           <strong>在线 OctoMap 上的 MRS 3D A* 路径</strong>
-          <span>A [0,0,2.2] → B [7,7,2.2] · 调整视角后补拍 · mission PASS</span>
+          <span>A [0,0,2.2] → B [7,7,2.2] · 8 path points · AUTO.LAND</span>
         </figcaption>
       </figure>
     </section>
@@ -295,15 +290,15 @@
 
     <section class="section" id="views">
       <header class="section-head">
-        <div><span class="section-label">Application views</span><h2>四个场景，<br>全部由应用内导出</h2></div>
-        <p>Gazebo 使用 <code>Screenshot</code> plugin 保存 3D scene；RViz 使用 <code>File → Save Image</code> 保存 render panel。图片不包含桌面、终端或浏览器界面。</p>
+        <div><span class="section-label">Demo workflow</span><h2>从在线建图<br>到自动落地</h2></div>
+        <p>四个场景展示同一条主线：Gazebo 生成传感器数据，RViz 显示在线 OctoMap 与三维路径，PX4 执行路径并在目标点落地。</p>
       </header>
 
       <div class="sequence">
         <article class="scene">
           <div class="scene-media">
             <img src="assets/gazebo-world-ready.png" alt="Gazebo 应用内导出的三维障碍世界，包括门型障碍、柱体、倾斜板和围墙" loading="lazy">
-            <span class="source-chip">Gazebo Screenshot plugin · 1700×1173</span>
+            <span class="source-chip">Gazebo · Obstacle world</span>
             <span class="pin world-gate" data-label="门型障碍">01</span>
             <span class="pin pin--left world-pillar" data-label="独立柱体">02</span>
           </div>
@@ -313,7 +308,7 @@
         <article class="scene scene--rviz">
           <div class="scene-media">
             <img src="assets/rviz-map-ready.png" alt="RViz 应用内导出的实时彩色 LiDAR 点云和 0.4 米 OctoMap 体素地图" loading="lazy">
-            <span class="source-chip">RViz Save image · 900×708</span>
+            <span class="source-chip">RViz · LiDAR + OctoMap</span>
             <span class="pin map-octomap" data-label="0.4 m OctoMap">01</span>
             <span class="pin pin--left map-cloud" data-label="实时 3D LiDAR">02</span>
           </div>
@@ -323,21 +318,21 @@
         <article class="scene scene--rviz">
           <div class="scene-media">
             <img src="assets/rviz-flight-path.png" alt="RViz 应用内导出的 A 到 B 绿色绕障路径、起点目标标记和飞行器位姿" loading="lazy">
-            <span class="source-chip">RViz Save Image · adjusted view</span>
+            <span class="source-chip">RViz · MRS 3D A* route</span>
             <span class="pin path-a" data-label="实际起点 A">A</span>
             <span class="pin path-b" data-label="目标 B">B</span>
             <span class="pin pin--left path-line" data-label="3D A* 路径">P</span>
           </div>
-          <div class="scene-copy"><span class="scene-index">03</span><div><h3>规划并执行非直线路径</h3><p>补拍任务得到 8 点完整路径，横向绕行 3.111 m。路径通过完整性与净距检查后，才发送给 PX4 OFFBOARD。</p></div></div>
+          <div class="scene-copy"><span class="scene-index">03</span><div><h3>规划并执行非直线路径</h3><p>MRS MinimalOctomapPlanner 生成 8 点完整路径，横向绕行 3.111 m。路径通过完整性与净距检查后，由 PX4 OFFBOARD 执行。</p></div></div>
         </article>
 
         <article class="scene scene--drone">
           <div class="scene-media">
             <img src="assets/gazebo-landed-b.png" alt="Gazebo 应用内导出的 x500 无人机在 B 点落地后的机体和顶部 3D LiDAR" loading="lazy">
-            <span class="source-chip">Gazebo Screenshot plugin · B 点落地</span>
+            <span class="source-chip">Gazebo · Goal B</span>
             <span class="pin drone-lidar" data-label="顶部 3D LiDAR">L</span>
           </div>
-          <div class="scene-copy"><span class="scene-index">04</span><div><h3>到达 B 并自动落地</h3><p>目标误差 0.037 m；任务切换到 <code>AUTO.LAND</code>，最终事件为 <code>landed_disarmed</code>。</p></div></div>
+          <div class="scene-copy"><span class="scene-index">04</span><div><h3>到达 B 并自动落地</h3><p>目标误差 0.040 m；任务切换到 <code>AUTO.LAND</code>，最终事件为 <code>landed_disarmed</code>。</p></div></div>
         </article>
       </div>
     </section>
@@ -420,7 +415,7 @@ cd PX4-3D-LiDAR-Nav-Demo
     <section class="section" id="evidence">
       <header class="section-head">
         <div><span class="section-label">Reference validation · 2026-08-06</span><h2>完整冷启动、在线规划、飞行与落地</h2></div>
-        <p>参考环境从冷启动到 ready 用时 247 秒；随后完成在线规划、全部航点执行、到达 B 和 <code>AUTO.LAND</code>。主路径图在相同配置下完成另一轮任务后调整 RViz 视角补拍。</p>
+        <p>参考环境从冷启动到 ready 用时 248 秒；MRS 规划器生成完整路径，PX4 执行全部航点并在 B 点自动降落。</p>
       </header>
       <div class="evidence">
         <article class="evidence-main">
@@ -428,10 +423,10 @@ cd PX4-3D-LiDAR-Nav-Demo
           <h3>参考任务结果</h3>
           <p>MRS MinimalOctomapPlanner 返回完整路径；PX4/DLIO/MAVROS/OctoMap 保持同一在线会话。任务事件末尾是 <code>goal_B_reached → AUTO.LAND → landed_disarmed</code>。</p>
           <div class="evidence-grid">
-            <div><span>STARTUP</span><strong>247 s</strong></div>
-            <div><span>PATH</span><strong>13.507 m</strong></div>
-            <div><span>CROSS-TRACK</span><strong>3.394 m</strong></div>
-            <div><span>GOAL ERROR</span><strong>0.037 m</strong></div>
+            <div><span>STARTUP</span><strong>248 s</strong></div>
+            <div><span>PATH</span><strong>12.753 m</strong></div>
+            <div><span>CROSS-TRACK</span><strong>3.111 m</strong></div>
+            <div><span>GOAL ERROR</span><strong>0.040 m</strong></div>
           </div>
         </article>
         <div class="evidence-links">
