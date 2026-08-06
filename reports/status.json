@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-08-06T00:44:00+08:00",
+  "updated_at": "2026-08-06T11:33:30+08:00",
   "project": "PX4 3D LiDAR Navigation Demo",
   "repository": "https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo",
   "license": "Apache-2.0",
@@ -15,13 +15,13 @@
     "mavros": "2.14.0"
   },
   "reference_result": {
-    "startup_seconds": 247,
-    "path_points": 9,
-    "path_length_m": 13.507,
-    "max_cross_track_m": 3.394,
-    "minimum_obstacle_center_distance_m": 3.129,
+    "startup_seconds": 248,
+    "path_points": 8,
+    "path_length_m": 12.753,
+    "max_cross_track_m": 3.111,
+    "minimum_obstacle_center_distance_m": 2.856,
     "minimum_required_center_distance_m": 1.35,
-    "goal_error_m": 0.037,
+    "goal_error_m": 0.04,
     "maximum_allowed_goal_error_m": 0.4,
     "terminal_mode": "AUTO.LAND",
     "landed_and_disarmed": true

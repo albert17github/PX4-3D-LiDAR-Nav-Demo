@@ -7,15 +7,15 @@ Gazebo 或 RViz 自身的保存功能生成，不是桌面全屏截图：
 |---|---|---:|---|
 | `gazebo-world-ready.png` | Gazebo GUI `Screenshot` plugin / `/gui/screenshot` | 1700×1173 | 障碍世界 ready |
 | `rviz-map-ready.png` | RViz `File → Save Image`，未勾选整窗 | 900×708 | 实时 3D LiDAR 与 OctoMap |
-| `rviz-flight-path.png` | RViz `File → Save Image`，未勾选整窗 | 900×708 | 调整视角后补拍的 8 点完整路径与任务标记 |
+| `rviz-flight-path.png` | RViz `File → Save Image`，未勾选整窗 | 900×708 | 固定 A→B 的 8 点路径、任务标记与 PX4 位姿 |
 | `gazebo-landed-b.png` | Gazebo GUI `Screenshot` plugin / `/gui/screenshot` | 1700×1173 | B 点落地后的 x500 与 3D LiDAR |
 
-`rviz-flight-path.png` 于 2026-08-06 在另一轮固定 A→B 任务 PASS 后补拍：路径长
-`12.753 m`、横向绕行 `3.111 m`、目标误差 `0.040 m`，最终事件为
-`landed_disarmed`。只调整了 RViz 观察角度，没有修改地图、路径或算法。
+`rviz-flight-path.png` 记录固定 A→B 参考任务：路径长 `12.753 m`、横向绕行
+`3.111 m`、目标误差 `0.040 m`；任务最终进入 `AUTO.LAND` 并解除解锁。
+图片由 RViz render panel 直接导出。
 
-所有图片在加入页面前均已逐张以原始分辨率检查。页面上的文字标注使用 HTML/CSS
-叠加，未覆盖或改写原始 PNG 像素。
+所有图片在加入页面前均已逐张以原始分辨率检查。报告页使用固定 16:10 容器和
+`object-fit: cover` 裁切显示；文字标注由 HTML/CSS 叠加，原始 PNG 像素保持不变。
 
 ## SHA-256
 
