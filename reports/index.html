@@ -69,6 +69,8 @@
     .topbar nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px 18px; color: var(--muted); }
     .topbar nav a { text-decoration: none; border-bottom: 1px solid transparent; }
     .topbar nav a:hover { color: var(--ink); border-color: currentColor; }
+    .topbar nav .repo-return { margin-top: -5px; padding: 5px 9px; color: #fff; background: var(--blue); border: 1px solid var(--blue); }
+    .topbar nav .repo-return:hover { color: #fff; background: var(--night); border-color: var(--night); }
 
     .hero {
       display: grid;
@@ -250,6 +252,7 @@
   <header class="shell topbar">
     <a class="brand" href="#overview">PX4 / 3D LiDAR / A→B</a>
     <nav aria-label="页面导航">
+      <a class="repo-return" href="https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo" aria-label="返回 GitHub 开源项目主页">← 返回开源项目</a>
       <a href="#views">运行画面</a>
       <a href="#route">技术路线</a>
       <a href="#environment">推荐环境</a>
