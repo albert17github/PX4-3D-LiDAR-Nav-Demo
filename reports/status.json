@@ -1,31 +1,41 @@
 {
+  "schema_version": 1,
   "updated_at": "2026-08-06T00:44:00+08:00",
-  "state": "completed_with_warning",
-  "phase": "推荐环境检查、分阶段错误、软件内图片和介绍页已经完成；端到端 A→B 任务 PASS",
-  "summary": "项目只正式支持 Ubuntu 24.04 x86_64 推荐环境。新增检查不会修改用户系统；setup 失败会显示阶段和日志。20260806-001212-uVRmSE 实际飞行目标误差 0.037 m，并 AUTO.LAND。停止后进程归零，但参数 restore 证据因未再次证明 landed 而跳过。",
-  "publication": {
-    "repository": "albert17github/PX4-3D-LiDAR-Nav-Demo",
-    "visibility": "public",
-    "license": "Apache-2.0",
-    "branch": "fix/bounded-px4-fetch"
+  "project": "PX4 3D LiDAR Navigation Demo",
+  "repository": "https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo",
+  "license": "Apache-2.0",
+  "status": "reference_demo_verified",
+  "scope": "Static-obstacle PX4 SITL navigation in Gazebo with online 3D mapping and automatic landing",
+  "reference_environment": {
+    "operating_system": "Ubuntu 24.04 LTS Desktop",
+    "architecture": "x86_64",
+    "ros": "ROS 2 Jazzy",
+    "simulator": "Gazebo Harmonic",
+    "px4": "v1.17.0",
+    "mavros": "2.14.0"
   },
-  "active_run": null,
-  "progress": 100,
-  "steps": [
-    {"name": "Environment", "state": "done", "detail": "Ubuntu 24.04、x86_64、Bash/Git/Python、CPU、RAM、disk、DISPLAY、runtime 与 source commit 检查"},
-    {"name": "Setup errors", "state": "done", "detail": "六阶段输出；失败显示 stage、log 和 rerun command，不自动切换客户网络配置"},
-    {"name": "Runtime verify", "state": "done", "detail": "当前机 --run 与 setup --verify-only PASS；空 DISPLAY 负向检查 exit 10"},
-    {"name": "Flight", "state": "done", "detail": "9 点路径，13.507 m，cross-track 3.394 m，中心距 3.129 m，目标误差 0.037 m，AUTO.LAND"},
-    {"name": "Images", "state": "done", "detail": "Gazebo Screenshot plugin 与 RViz Save Image 生成 4 张软件内部视图，已逐张检查"},
-    {"name": "Report", "state": "done", "detail": "介绍页重写并在 Firefox 实际打开；页面和 4 张图片 HTTP 均为 200"},
-    {"name": "Shutdown", "state": "warning", "detail": "受管进程和 marker 为 0；px4_lio_restore=SKIPPED_NOT_PROVEN_LANDED"}
+  "reference_result": {
+    "startup_seconds": 247,
+    "path_points": 9,
+    "path_length_m": 13.507,
+    "max_cross_track_m": 3.394,
+    "minimum_obstacle_center_distance_m": 3.129,
+    "minimum_required_center_distance_m": 1.35,
+    "goal_error_m": 0.037,
+    "maximum_allowed_goal_error_m": 0.4,
+    "terminal_mode": "AUTO.LAND",
+    "landed_and_disarmed": true
+  },
+  "images": [
+    {"name": "Gazebo obstacle world", "href": "assets/gazebo-world-ready.png"},
+    {"name": "RViz online 3D map", "href": "assets/rviz-map-ready.png"},
+    {"name": "RViz planned path", "href": "assets/rviz-flight-path.png"},
+    {"name": "Gazebo landing at goal", "href": "assets/gazebo-landed-b.png"}
   ],
-  "evidence": [
-    {"name": "介绍页", "detail": "真实软件画面、技术路线、推荐环境和复刻命令", "href": "index.html"},
-    {"name": "Gazebo world", "detail": "Screenshot plugin 原始 3D scene", "href": "assets/gazebo-world-ready.png"},
-    {"name": "RViz map", "detail": "Save Image 原始 render panel", "href": "assets/rviz-map-ready.png"},
-    {"name": "RViz path", "detail": "本轮 9 点规划路径", "href": "assets/rviz-flight-path.png"},
-    {"name": "Gazebo landed", "detail": "B 点落地后的 x500 与 3D LiDAR", "href": "assets/gazebo-landed-b.png"},
-    {"name": "图片来源", "detail": "尺寸、导出方式、视觉检查和 SHA-256", "href": "assets/README.md"}
+  "limitations": [
+    "SITL research demo; not flight-certified software",
+    "Static obstacles only",
+    "The current planner configuration allows travel through unknown space",
+    "Real-vehicle deployment requires independent calibration, timing and safety validation"
   ]
 }

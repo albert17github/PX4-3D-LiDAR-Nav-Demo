@@ -3,8 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="PX4 SITL、Gazebo 3D LiDAR、DLIO、OctoMap、三维 A* 与 MAVROS OFFBOARD 的可复刻实时仿真。">
-  <title>PX4 3D LiDAR · 从空间感知到安全落地</title>
+  <meta name="description" content="可复刻的 PX4 三维 LiDAR 导航仿真：Gazebo、DLIO、OctoMap、MRS 3D A* 与 MAVROS OFFBOARD 完整闭环。">
+  <meta name="theme-color" content="#132028">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="PX4 3D LiDAR Navigation Demo">
+  <meta property="og:description" content="从实时三维感知、定位和建图，到绕障规划、OFFBOARD 执行与自动降落。">
+  <meta property="og:url" content="https://albert17github.github.io/PX4-3D-LiDAR-Nav-Demo/">
+  <meta property="og:image" content="https://albert17github.github.io/PX4-3D-LiDAR-Nav-Demo/reports/assets/rviz-flight-path.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://albert17github.github.io/PX4-3D-LiDAR-Nav-Demo/">
+  <title>PX4 3D LiDAR Navigation Demo</title>
   <style>
     :root {
       --fog: #e8ece9;
@@ -258,25 +266,25 @@
   <main id="main" class="shell">
     <section class="hero" id="overview">
       <div class="hero-copy">
-        <p class="kicker">Realtime autonomy loop · PX4 SITL</p>
-        <h1>看见空间，<span>绕开障碍</span>，安全落地。</h1>
+        <p class="kicker">PX4 SITL · GAZEBO · ROS 2 JAZZY</p>
+        <h1>PX4 三维 LiDAR <span>导航仿真</span></h1>
         <p class="hero-lede">
-          这是一条可实时观察的无人机三维导航主线：<strong>Gazebo 生成物理世界和 3D LiDAR，DLIO 估计运动，OctoMap 建图，开源三维 A* 规划，PX4 OFFBOARD 执行。</strong>
-          算法来自上游开源项目，本仓库只做启动、连接、安全校验和证据保存。
+          <strong>Gazebo 提供物理世界与 3D LiDAR，DLIO 估计运动，OctoMap 建图，MRS 3D A* 规划，PX4 OFFBOARD 执行。</strong>
+          本仓库提供启动编排、组件连接、路径检查和结果保存；算法由上游开源项目提供。
         </p>
         <div class="hero-command"><span>$</span> ./demo.sh --interactive</div>
         <dl class="hero-metrics">
-          <div><dt>目标误差</dt><dd>0.037 m</dd><small>PASS ≤ 0.4 m</small></div>
+          <div><dt>目标误差</dt><dd>0.037 m</dd><small>要求 ≤ 0.4 m</small></div>
           <div><dt>路径长度</dt><dd>13.507 m</dd><small>9 个可执行点</small></div>
-          <div><dt>障碍中心距</dt><dd>3.129 m</dd><small>PASS ≥ 1.35 m</small></div>
+          <div><dt>障碍中心距</dt><dd>3.129 m</dd><small>要求 ≥ 1.35 m</small></div>
         </dl>
       </div>
       <figure class="hero-visual">
-        <img src="assets/rviz-flight-path.png" alt="RViz 内部导出的三维点云、OctoMap、绿色规划路径、起点和目标点" fetchpriority="high">
-        <span class="source-chip">RViz · Save image · 900×708 · 非桌面截图</span>
+        <img src="assets/rviz-flight-path.png" alt="RViz 应用内导出的三维点云、OctoMap、绿色规划路径、起点和目标点" fetchpriority="high">
+        <span class="source-chip">RViz Save Image · 900×708</span>
         <figcaption class="hero-caption">
           <strong>在线 OctoMap 上的 MRS 3D A* 路径</strong>
-          <span>RUN 20260806-001212-uVRmSE · A [0,0,2.2] → B [7,7,2.2] · AUTO.LAND</span>
+          <span>A [0,0,2.2] → B [7,7,2.2] · 9 path points · AUTO.LAND</span>
         </figcaption>
       </figure>
     </section>
@@ -287,14 +295,14 @@
 
     <section class="section" id="views">
       <header class="section-head">
-        <div><span class="section-label">Software-native views</span><h2>四个场景，<br>全部来自软件内部导出</h2></div>
-        <p>Gazebo 使用自带 <code>Screenshot</code> plugin 保存 3D scene；RViz 使用 <code>File → Save Image</code> 保存 render panel。页面没有使用桌面全屏截图，也没有把终端窗口裁成“仿真图”。</p>
+        <div><span class="section-label">Application views</span><h2>四个场景，<br>全部由应用内导出</h2></div>
+        <p>Gazebo 使用 <code>Screenshot</code> plugin 保存 3D scene；RViz 使用 <code>File → Save Image</code> 保存 render panel。图片不包含桌面、终端或浏览器界面。</p>
       </header>
 
       <div class="sequence">
         <article class="scene">
           <div class="scene-media">
-            <img src="assets/gazebo-world-ready.png" alt="Gazebo 内部导出的三维障碍世界，包括门型障碍、柱体、倾斜板和围墙" loading="lazy">
+            <img src="assets/gazebo-world-ready.png" alt="Gazebo 应用内导出的三维障碍世界，包括门型障碍、柱体、倾斜板和围墙" loading="lazy">
             <span class="source-chip">Gazebo Screenshot plugin · 1700×1173</span>
             <span class="pin world-gate" data-label="门型障碍">01</span>
             <span class="pin pin--left world-pillar" data-label="独立柱体">02</span>
@@ -304,7 +312,7 @@
 
         <article class="scene scene--rviz">
           <div class="scene-media">
-            <img src="assets/rviz-map-ready.png" alt="RViz 内部导出的实时彩色 LiDAR 点云和 0.4 米 OctoMap 体素地图" loading="lazy">
+            <img src="assets/rviz-map-ready.png" alt="RViz 应用内导出的实时彩色 LiDAR 点云和 0.4 米 OctoMap 体素地图" loading="lazy">
             <span class="source-chip">RViz Save image · 900×708</span>
             <span class="pin map-octomap" data-label="0.4 m OctoMap">01</span>
             <span class="pin pin--left map-cloud" data-label="实时 3D LiDAR">02</span>
@@ -314,18 +322,18 @@
 
         <article class="scene scene--rviz">
           <div class="scene-media">
-            <img src="assets/rviz-flight-path.png" alt="RViz 内部导出的 A 到 B 绿色绕障路径、起点目标标记和飞行器位姿" loading="lazy">
-            <span class="source-chip">RViz Save image · 本轮实际路径</span>
+            <img src="assets/rviz-flight-path.png" alt="RViz 应用内导出的 A 到 B 绿色绕障路径、起点目标标记和飞行器位姿" loading="lazy">
+            <span class="source-chip">RViz Save Image · reference path</span>
             <span class="pin path-a" data-label="实际起点 A">A</span>
             <span class="pin path-b" data-label="目标 B">B</span>
             <span class="pin pin--left path-line" data-label="3D A* 路径">P</span>
           </div>
-          <div class="scene-copy"><span class="scene-index">03</span><div><h3>规划并执行非直线路径</h3><p>本轮获得 9 点路径，横向绕行 3.394 m。路径通过完整性与净距校验后，才发送给 PX4 OFFBOARD。</p></div></div>
+          <div class="scene-copy"><span class="scene-index">03</span><div><h3>规划并执行非直线路径</h3><p>参考任务得到 9 点路径，横向绕行 3.394 m。路径通过完整性与净距检查后，才发送给 PX4 OFFBOARD。</p></div></div>
         </article>
 
         <article class="scene scene--drone">
           <div class="scene-media">
-            <img src="assets/gazebo-landed-b.png" alt="Gazebo 内部导出的 x500 无人机在 B 点落地后的机体和顶部 3D LiDAR" loading="lazy">
+            <img src="assets/gazebo-landed-b.png" alt="Gazebo 应用内导出的 x500 无人机在 B 点落地后的机体和顶部 3D LiDAR" loading="lazy">
             <span class="source-chip">Gazebo Screenshot plugin · B 点落地</span>
             <span class="pin drone-lidar" data-label="顶部 3D LiDAR">L</span>
           </div>
@@ -336,8 +344,8 @@
 
     <section class="section" id="route">
       <header class="section-head">
-        <div><span class="section-label">One observable mainline</span><h2>技术路线：连接成熟算法，不重写算法</h2></div>
-        <p>每个框都是当前运行中的真实上游组件。项目代码只在组件边界做数据路由、目标接收、航点平滑、安全门和证据保存。</p>
+        <div><span class="section-label">Architecture</span><h2>组件与数据流</h2></div>
+        <p>项目代码位于组件边界，只负责数据路由、目标接收、路径检查、航点平滑和结果保存；定位、地图、规划与飞控继续使用上游开源实现。</p>
       </header>
       <div class="pipeline" aria-label="项目数据流">
         <article class="pipe"><b>01 / PHYSICS</b><h3>PX4 + Gazebo</h3><p>SITL 飞控、动力学、IMU 与 3D LiDAR。</p></article>
@@ -358,12 +366,12 @@
 
     <section class="section" id="environment">
       <header class="section-head">
-        <div><span class="section-label">Supported environment</span><h2>只承诺推荐环境，不猜测所有客户配置</h2></div>
-        <p>启动前检查系统、架构、主机命令、版本、资源、图形显示、runtime 文件和固定源码 commit。脚本不自动改代理、DNS、软件源或虚拟机设置。</p>
+        <div><span class="section-label">System requirements</span><h2>支持的运行环境</h2></div>
+        <p>启动前检查系统、架构、主机命令、版本、资源、图形显示、runtime 文件和固定源码 commit。检查过程不会修改代理、DNS、软件源或虚拟机设置。</p>
       </header>
       <div class="environment">
         <dl class="env-table">
-          <div class="env-row"><dt>Operating system</dt><dd>Ubuntu 24.04 LTS Desktop；当前实测 24.04.4</dd></div>
+          <div class="env-row"><dt>Operating system</dt><dd>Ubuntu 24.04 LTS Desktop</dd></div>
           <div class="env-row"><dt>Architecture</dt><dd>Linux <code>x86_64</code></dd></div>
           <div class="env-row"><dt>CPU / RAM</dt><dd>推荐 8 线程、12 GiB RAM + 4 GiB swap；最低 4 线程、guest 内 10 GiB RAM</dd></div>
           <div class="env-row"><dt>Disk</dt><dd>首次安装推荐 30 GiB 可用，最低 20 GiB；完整 runtime 约 14 GiB</dd></div>
@@ -371,12 +379,12 @@
           <div class="env-row"><dt>Host versions</dt><dd>Bash ≥ 5.2、Git ≥ 2.43、Python 3.12.x</dd></div>
         </dl>
         <div class="terminal" aria-label="环境检查输出示例">
-          <p>当前验证机的真实检查摘要：</p>
+          <p>参考环境检查输出：</p>
           <span class="prompt">$</span> ./scripts/check_environment.sh --run<br>
           <span class="ok">PASS</span> operating system&nbsp;&nbsp; Ubuntu 24.04.4 LTS<br>
           <span class="ok">PASS</span> architecture&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x86_64<br>
           <span class="ok">PASS</span> Python&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 3.12.3<br>
-          <span class="ok">PASS</span> desktop display&nbsp;&nbsp; DISPLAY=:0 reachable<br>
+          <span class="ok">PASS</span> desktop display&nbsp;&nbsp; reachable<br>
           <span class="ok">PASS</span> runtime files&nbsp;&nbsp;&nbsp;&nbsp; Jazzy / Harmonic<br>
           <span class="ok">PASS</span> source versions&nbsp;&nbsp; PX4 / DLIO / MAVROS<br><br>
           <span class="dim">Environment check: PASS</span>
@@ -386,14 +394,14 @@
 
     <section class="section" id="reproduce">
       <header class="section-head">
-        <div><span class="section-label">GitHub reproduction</span><h2>环境正确之后，入口保持简单</h2></div>
-        <p>宿主机依赖由用户按文档安装。项目脚本只检查、下载固定输入、构建和核验；完成后仍然只用 <code>./demo.sh</code> 启动。</p>
+        <div><span class="section-label">Quick start</span><h2>安装与启动</h2></div>
+        <p>宿主机依赖清单位于安装文档。项目脚本负责检查、下载固定输入、构建和核验；安装完成后使用 <code>./demo.sh</code> 启动。</p>
       </header>
       <div class="reproduce">
         <article class="repro-copy">
-          <h3>下载内容都留在当前仓库</h3>
-          <p>不会读取作者电脑上的其他项目。PX4、DLIO、MAVROS、Ubuntu rootfs 与补丁均有 commit 或 SHA-256 锁；ROS/Gazebo apt 实际版本写入 manifest。</p>
-          <a href="../docs/REPRODUCE.md">打开完整环境、网络地址和排错边界 →</a>
+          <h3>运行时生成在当前 checkout</h3>
+          <p>PX4、DLIO、MAVROS、Ubuntu rootfs 与补丁均有 commit 或 SHA-256 锁；ROS/Gazebo apt 实际版本写入 manifest。默认安装和运行不依赖仓库外的工程目录。</p>
+          <a href="https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo/blob/main/docs/REPRODUCE.md">查看完整环境、网络要求和故障定位说明 →</a>
         </article>
         <pre><span class="comment"># Ubuntu 24.04 Desktop / x86_64</span>
 git clone https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo.git
@@ -405,19 +413,19 @@ cd PX4-3D-LiDAR-Nav-Demo
       <div class="failures" aria-label="错误处理边界">
         <article class="failure"><b>STAGE</b><h3>明确停在哪一步</h3><p>输出例如 <code>setup stage 4/6 failed</code>，不把多个下载或构建错误混在一起。</p></article>
         <article class="failure"><b>LOG</b><h3>给出唯一日志路径</h3><p>每个阶段保存到 <code>runtime/logs/</code>，上游 <code>apt</code>、<code>curl</code>、<code>git</code> 原始错误保持可见。</p></article>
-        <article class="failure"><b>BOUNDARY</b><h3>用户处理自己的环境</h3><p>脚本不自动切换镜像、改 DNS、改代理或规避非推荐系统；修复后重新执行即可复用已完成内容。</p></article>
+        <article class="failure"><b>BOUNDARY</b><h3>不隐藏环境差异</h3><p>脚本不自动切换镜像、DNS 或代理，也不绕过非推荐系统；问题处理完成后可继续复用已完成步骤。</p></article>
       </div>
     </section>
 
     <section class="section" id="evidence">
       <header class="section-head">
-        <div><span class="section-label">Verified on 2026-08-06</span><h2>这一版已经重新冷启动并实际飞行</h2></div>
-        <p>新增环境检查先 PASS，完整栈用 247 秒到 ready；随后在线规划、执行全部航点、到达 B、AUTO.LAND。图片均在该轮运行中由 Gazebo/RViz 内部保存。</p>
+        <div><span class="section-label">Reference validation · 2026-08-06</span><h2>完整冷启动、在线规划、飞行与落地</h2></div>
+        <p>参考环境从冷启动到 ready 用时 247 秒；随后完成在线规划、全部航点执行、到达 B 和 <code>AUTO.LAND</code>。本页图片来自同一次闭环验证。</p>
       </header>
       <div class="evidence">
         <article class="evidence-main">
-          <span class="run">RUN / 20260806-001212-uVRmSE</span>
-          <h3>Mission verdict: PASS</h3>
+          <span class="run">REFERENCE RESULT</span>
+          <h3>参考任务结果</h3>
           <p>MRS MinimalOctomapPlanner 返回完整路径；PX4/DLIO/MAVROS/OctoMap 保持同一在线会话。任务事件末尾是 <code>goal_B_reached → AUTO.LAND → landed_disarmed</code>。</p>
           <div class="evidence-grid">
             <div><span>STARTUP</span><strong>247 s</strong></div>
@@ -427,18 +435,18 @@ cd PX4-3D-LiDAR-Nav-Demo
           </div>
         </article>
         <div class="evidence-links">
-          <a href="status.json"><code>REPORT / JSON</code><strong>当前项目状态</strong></a>
-          <a href="assets/README.md"><code>IMAGES / PROVENANCE</code><strong>软件内图片来源与哈希</strong></a>
-          <a href="../PROJECT_MEMORY.md"><code>PROJECT / MEMORY</code><strong>一键命令、已知问题与后续建议</strong></a>
-          <a href="https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo"><code>PUBLIC / APACHE-2.0</code><strong>打开 GitHub 源码</strong></a>
+          <a href="status.json"><code>RESULT / JSON</code><strong>机器可读参考结果</strong></a>
+          <a href="https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo/blob/main/reports/assets/README.md"><code>IMAGES / PROVENANCE</code><strong>应用内图片来源与哈希</strong></a>
+          <a href="https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo/blob/main/docs/ARCHITECTURE.md"><code>DOCS / ARCHITECTURE</code><strong>数据流与航向权限</strong></a>
+          <a href="https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo"><code>SOURCE / APACHE-2.0</code><strong>打开 GitHub 源码</strong></a>
         </div>
       </div>
     </section>
   </main>
 
   <footer class="shell">
-    <span>PX4 3D LiDAR Navigation Demo · 静态障碍绕行 · SITL research demo</span>
-    <span><a href="../README.md">README</a> · <a href="../LICENSE">Apache-2.0</a> · <a href="../THIRD_PARTY_NOTICES.md">Third-party notices</a></span>
+    <span>PX4 3D LiDAR Navigation Demo · Static-obstacle SITL research demo</span>
+    <span><a href="https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo#readme">README</a> · <a href="https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo/blob/main/LICENSE">Apache-2.0</a> · <a href="https://github.com/albert17github/PX4-3D-LiDAR-Nav-Demo/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a></span>
   </footer>
 </body>
 </html>

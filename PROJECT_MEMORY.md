@@ -4,6 +4,15 @@
 
 在 Ubuntu 24 桌面中实时显示 Gazebo 和 RViz，让 PX4 SITL 无人机使用三维 LiDAR + IMU 完成定位与 OctoMap 建图，调用开源 MRS 三维 A* 规划器获得固定 A→B 或 RViz 交互目标路径，再通过 MAVROS OFFBOARD 位置航点实际飞完整条路径并自动降落。交互模式作为后续演示技术底座，应在同一会话中支持多次选点，同时保持自写代码只承担薄编排和安全连接层。
 
+## Public GitHub landing and report — PASS (2026-08-06)
+
+- GitHub 首页 `README.md` 已改为面向首次访问者的项目说明，只保留功能、真实 Gazebo/RViz 图片、架构、安装、使用、参考结果、运行边界和贡献入口；移除了内部 run 编号、旧版本流水账、作者目录、工作记忆入口和本机 `127.0.0.1` 报告地址。
+- `reports/index.html` 保留 4 张 Gazebo/RViz 应用内导出图片和 HTML/CSS 标注，但文案改为具体的组件、动作与测量结果，去掉口号式标题、客户/用户归责语气和内部验收措辞。公开链接统一使用仓库相对路径、GitHub 源码地址或 GitHub Pages 地址。
+- 根目录 `index.html` 将 GitHub Pages 入口转到 `reports/`；公开目标 URL 为 `https://albert17github.github.io/PX4-3D-LiDAR-Nav-Demo/`。Open Graph、canonical 与页面图片 URL 均使用该公开地址，不再引用临时预览服务。
+- 新增 `CONTRIBUTING.md`、结构化 bug issue 表单和图片 `SHA256SUMS`；本地检查增加公开文档链接与本机地址扫描。`.gitattributes` 将根入口与报告 HTML 标为 `linguist-documentation`，使 GitHub 语言统计反映 Python/Shell 主实现而不是介绍页篇幅。曾准备的 GitHub Actions 文件因当前 OAuth token 没有 `workflow` scope 而未推送，未扩大账号权限。
+- 本地复验通过：全部 Shell `bash -n`/`shellcheck -x`、Python `py_compile`、`./setup.sh --verify-only`、HTML/JSON 解析、README/报告相对链接、公开文档本机地址扫描和 4 张 PNG 哈希。四张原图已再次以原始分辨率检查；Firefox 实际打开并检查了报告首页、场景区和参考结果区。
+- 本阶段未改 SLAM、OctoMap、规划、任务执行或 PX4 参数。唯一运行时脚本改动是把可选 seed copy 中的个人 home 排除路径泛化为 `/home/***`，默认安装和启动路径不受影响。
+
 ## Recommended environment + software-native report — PASS (2026-08-06)
 
 - 复刻策略已从“自动兼容尽可能多的网络和 PRoot 边角情况”收敛为“只支持明确的推荐环境”。正式边界为 Ubuntu 24.04 LTS Desktop、Linux `x86_64`、Bash ≥ 5.2、Git ≥ 2.43、Python 3.12.x、至少 4 线程、guest 内至少 10 GiB RAM、首次安装至少 20 GiB 可用空间，以及可连接的 X11/XWayland `DISPLAY`；详细推荐值在 `docs/REPRODUCE.md`。
