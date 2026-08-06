@@ -30,11 +30,24 @@
 
 ## 运行画面
 
-| Gazebo 障碍世界 | RViz 在线三维地图 |
-|---|---|
-| ![Gazebo 中的静态三维障碍世界](reports/assets/gazebo-world-ready-16x10.png) | ![RViz 中的实时 3D LiDAR 与 OctoMap](reports/assets/rviz-map-ready-16x10.png) |
-| **RViz 规划路径** | **到达目标并落地** |
-| ![RViz 中的三维 A 星路径](reports/assets/rviz-flight-path-16x10.png) | ![Gazebo 中在目标点落地的 x500](reports/assets/gazebo-landed-b-16x10.png) |
+<table width="100%">
+  <tr>
+    <th width="50%">Gazebo 障碍世界</th>
+    <th width="50%">RViz 在线三维地图</th>
+  </tr>
+  <tr>
+    <td width="50%"><img src="reports/assets/gazebo-world-ready-16x10.png" width="480" alt="Gazebo 中的静态三维障碍世界"></td>
+    <td width="50%"><img src="reports/assets/rviz-map-ready-16x10.png" width="480" alt="RViz 中的实时 3D LiDAR 与 OctoMap"></td>
+  </tr>
+  <tr>
+    <th width="50%">RViz 规划路径</th>
+    <th width="50%">到达目标并落地</th>
+  </tr>
+  <tr>
+    <td width="50%"><img src="reports/assets/rviz-flight-path-16x10.png" width="480" alt="RViz 中的三维 A 星路径"></td>
+    <td width="50%"><img src="reports/assets/gazebo-landed-b-16x10.png" width="480" alt="Gazebo 中在目标点落地的 x500"></td>
+  </tr>
+</table>
 
 四张展示图均为 960×600（16:10），依次展示物理仿真、在线三维地图、
 绕障路径和目标点落地。
