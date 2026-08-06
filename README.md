@@ -32,11 +32,12 @@
 
 | Gazebo 障碍世界 | RViz 在线三维地图 |
 |---|---|
-| ![Gazebo 中的静态三维障碍世界](reports/assets/gazebo-world-ready.png) | ![RViz 中的实时 3D LiDAR 与 OctoMap](reports/assets/rviz-map-ready.png) |
+| ![Gazebo 中的静态三维障碍世界](reports/assets/gazebo-world-ready-16x10.png) | ![RViz 中的实时 3D LiDAR 与 OctoMap](reports/assets/rviz-map-ready-16x10.png) |
 | **RViz 规划路径** | **到达目标并落地** |
-| ![RViz 中的三维 A 星路径](reports/assets/rviz-flight-path.png) | ![Gazebo 中在目标点落地的 x500](reports/assets/gazebo-landed-b.png) |
+| ![RViz 中的三维 A 星路径](reports/assets/rviz-flight-path-16x10.png) | ![Gazebo 中在目标点落地的 x500](reports/assets/gazebo-landed-b-16x10.png) |
 
-四个场景依次展示物理仿真、在线三维地图、绕障路径和目标点落地。
+四张展示图均为 960×600（16:10），依次展示物理仿真、在线三维地图、
+绕障路径和目标点落地。
 原图尺寸、来源和 SHA-256 见[图片说明](reports/assets/README.md)。
 
 ## 系统架构
